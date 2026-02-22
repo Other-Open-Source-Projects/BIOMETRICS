@@ -10,22 +10,22 @@
     "Delqhi": {
       "model": "nvidia-nim/qwen3.5-397b-a17b",
       "category": "general",
-      "fallback": ["modal/glm-5-fp8"]
+      "fallback": ["opencode/glm-5-free"]
     },
     "sisyphus": {
       "model": "nvidia-nim/qwen3.5-397b-a17b",
       "category": "general",
-      "fallback": ["modal/glm-5-fp8"]
+      "fallback": ["opencode/glm-5-free"]
     },
     "sisyphus-junior": {
-      "model": "opencode-zen/minimax-m2.5-free",
+      "model": "opencode/glm-5-free",
       "category": "quick",
       "fallback": []
     },
     "prometheus": {
       "model": "google/gemini-3.1-pro-preview",
       "category": "ultrabrain",
-      "fallback": ["modal/glm-5-fp8"]
+      "fallback": ["opencode/glm-5-free"]
     },
     "metis": {
       "model": "google/gemini-3-pro-preview",
@@ -33,14 +33,14 @@
       "fallback": ["google/gemini-3-flash-preview"]
     },
     "momus": {
-      "model": "modal/glm-5-fp8",
+      "model": "opencode/glm-5-free",
       "category": "ultrabrain",
       "fallback": ["opencode-zen/minimax-m2.5-free"]
     },
     "oracle": {
-      "model": "nvidia-nim/qwen3.5-397b-a17b",
+      "model": "google/gemini-3.1-pro-preview",
       "category": "ultrabrain",
-      "fallback": ["modal/glm-5-fp8"]
+      "fallback": ["opencode/glm-5-free"]
     },
     "librarian": {
       "model": "opencode-zen/minimax-m2.5-free",
@@ -68,19 +68,19 @@
       "fallback": ["google/gemini-3-flash-preview"]
     },
     "atlas": {
-      "model": "modal/glm-5-fp8",
+      "model": "opencode/glm-5-free",
       "category": "general",
       "fallback": ["opencode-zen/minimax-m2.5-free"]
     },
     "build": {
       "model": "nvidia-nim/qwen3.5-397b-a17b",
       "category": "build",
-      "fallback": ["modal/glm-5-fp8"]
+      "fallback": ["opencode/glm-5-free"]
     },
     "plan": {
       "model": "google/gemini-3.1-pro-preview",
       "category": "plan",
-      "fallback": ["modal/glm-5-fp8"]
+      "fallback": ["opencode/glm-5-free"]
     }
   },
   "categories": {
@@ -114,6 +114,10 @@
       "model": "google/gemini-3.1-pro-preview",
       "temperature": 0.8,
       "thinking": {"type": "enabled", "budgetTokens": 16384}
+    },
+    "artistry": {
+      "model": "google/gemini-3-pro-preview",
+      "temperature": 1.0
     }
   },
   "claude_code": {
