@@ -91,10 +91,7 @@
     "ultrabrain": {
       "model": "google/gemini-3.1-pro-preview",
       "temperature": 0.9,
-      "thinking": {
-        "type": "enabled",
-        "budgetTokens": 32768
-      }
+      "thinking": {"type": "enabled", "budgetTokens": 32768}
     },
     "quick": {
       "model": "google/gemini-3-flash-preview",
@@ -111,18 +108,12 @@
     "build": {
       "model": "nvidia-nim/qwen3.5-397b-a17b",
       "temperature": 0.7,
-      "thinking": {
-        "type": "enabled",
-        "budgetTokens": 16384
-      }
+      "thinking": {"type": "enabled", "budgetTokens": 16384}
     },
     "plan": {
       "model": "google/gemini-3.1-pro-preview",
       "temperature": 0.8,
-      "thinking": {
-        "type": "enabled",
-        "budgetTokens": 16384
-      }
+      "thinking": {"type": "enabled", "budgetTokens": 16384}
     }
   },
   "claude_code": {
