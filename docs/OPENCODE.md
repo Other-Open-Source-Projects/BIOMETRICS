@@ -83,16 +83,18 @@ opencode run "Say OK" --model google/gemini-3-pro-preview
 
 ---
 
-## Verifizierte Modelle (Februar 2026)
+## Verifizierte Modelle (Februar 2026) - NUR 2.5 FUNKTIONIERT!
+
+**WICHTIG:** Gemini 3 Modelle sind NICHT verfuegbar! Siehe untenstehende Tabelle.
 
 | Model | Test Status | Kommando |
 |-------|------------|----------|
 | `google/gemini-2.5-flash` | ✅ OK | `opencode run "test" --model google/gemini-2.5-flash` |
 | `google/gemini-2.5-pro` | ✅ OK | `opencode run "test" --model google/gemini-2.5-pro` |
-| `google/gemini-3.1-pro-preview` | ✅ OK | `opencode run "test" --model google/gemini-3.1-pro-preview` |
-| `google/gemini-3.1-pro-preview-customtools` | ✅ OK | `opencode run "test" --model google/gemini-3.1-pro-preview-customtools` |
-| `google/gemini-3-pro-preview` | ✅ OK | `opencode run "test" --model google/gemini-3-pro-preview` |
-| `google/gemini-3-flash-preview` | ✅ OK | `opencode run "test" --model google/gemini-3-flash-preview` |
+| `google/gemini-3.1-pro-preview` | ❌ NICHT verfuegbar | Preview Only |
+| `google/gemini-3.1-pro-preview-customtools` | ❌ NICHT verfuegbar | Preview Only |
+| `google/gemini-3-pro-preview` | ❌ NICHT verfuegbar | Preview Only |
+| `google/gemini-3-flash-preview` | ❌ NICHT verfuegbar | Preview Only |
 
 ---
 
@@ -560,3 +562,60 @@ opencode auth login  # Browser oeffnet sich
 ---
 
 **Letzte Aktualisierung:** 2026-02-22 - KORREKTE Konfiguration dokumentiert
+---
+
+## WICHTIG: Gemini 3 Modelle - Nicht verfuegbar (Februar 2026)
+
+**Stand:** Februar 2026
+
+### Das Problem
+
+Gemini 3 Pro, Gemini 3 Flash, und Gemini 3.1 Pro Preview sind **NICHT** ueber die Standard Google AI API verfuegbar.
+
+Diese Modelle sind "Preview"-Modelle und erfordern einen speziellen Zugang.
+
+### Verfuegbare Modelle (Februar 2026)
+
+| Modell | Status | API |
+|--------|--------|-----|
+| `gemini-2.5-flash` | ✅ FUNKTIONIERT | Standard API |
+| `gemini-2.5-pro` | ✅ FUNKTIONIERT | Standard API |
+| `gemini-3-pro-preview` | ❌ NICHT verfuegbar | Preview Only |
+| `gemini-3-flash-preview` | ❌ NICHT verfuegbar | Preview Only |
+| `gemini-3.1-pro-preview` | ❌ NICHT verfuegbar | Preview Only |
+
+### Getestete Konfiguration
+
+```json
+{
+  "provider": {
+    "google": {
+      "npm": "@ai-sdk/google",
+      "models": {
+        "gemini-2.5-flash": {
+          "id": "gemini-2.0-flash-exp",
+          "name": "Gemini 2.5 Flash (Working)",
+          "limit": { "context": 1048576, "output": 65536 }
+        },
+        "gemini-2.5-pro": {
+          "id": "gemini-2.0-pro-exp",
+          "name": "Gemini 2.5 Pro (Working)",
+          "limit": { "context": 2097152, "output": 65536 }
+        }
+      }
+    }
+  }
+}
+```
+
+### Test-Kommandos
+
+```bash
+# Test Gemini 2.5 Flash
+opencode run "Say OK" --model google/gemini-2.5-flash
+
+# Test Gemini 2.5 Pro
+opencode run "Say OK" --model google/gemini-2.5-pro
+```
+
+**Letzte Aktualisierung:** 2026-02-22 - Gemini 3 Modelle nicht verfuegbar dokumentiert
