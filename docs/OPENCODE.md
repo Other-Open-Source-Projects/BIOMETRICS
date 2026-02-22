@@ -382,3 +382,181 @@ Falls du das nochmal machen musst:
 ---
 
 **Letzte Prüfung:** 2026-02-22 - Alle Modelle funktionieren!
+
+## KORREKTE KONFIGURATION - Das Wissen aus der Praxis
+
+### Die WICHTIGSTE Lektion: Zwei verschiedene Syntaxen!
+
+**KRITISCH:** OpenCode und oh-my-opencode nutzen UNTERSCHIEDLICHE Syntax fuer Umgebungsvariablen!
+
+| Wo | Syntax | Beispiel |
+|---|--------|---------|
+| **opencode.json** (Basis) | `{env:VARIABLE}` | `{env:GEMINI_API_KEY}` |
+| **oh-my-opencode.jsonc** | `${VARIABLE}` | `${GEMINI_API_KEY}` |
+
+**ERROR:** Wenn du `${VAR}` in opencode.json verwendest, sendet es den Literal-String an die API!
+**ERROR:** Wenn du `{env:VAR}` in oh-my-opencode.jsonc verwendest, funktioniert es nicht!
+
+---
+
+### Konfigurations-Hierarchie (Priority: Low -> High)
+
+OpenCode laedt Konfigurationen in dieser Reihenfolge - hoehere ueberschreibt niedrigere:
+
+| Ebene | Quelle | Zweck |
+|-------|--------|-------|
+| **1. Remote** | `.well-known/opencode` | Globale Org-Standards, MCP-Server |
+| **2. Global** | `~/.config/opencode/opencode.json` | User-Praeferenzen, Fallback-Keys |
+| **3. Custom** | `OPENCODE_CONFIG` env Variable | Profil-Overrides, CI/CD |
+| **4. Projekt** | `./opencode.json` | Projekt-spezifische Agenten |
+| **5. Inline** | `OPENCODE_CONFIG_CONTENT` env | Temporaere Runtime-Overrides |
+
+---
+
+### auth.json - Der FALLBACK fuer API Keys
+
+**Location:** `~/.local/share/opencode/auth.json`
+
+Dies ist das FALLBACK-System wenn keine env-Variable gesetzt ist:
+
+```
+Pruefung bei Start:
+1. opencode.json -> {env:VAR} Token
+2. .env Dateien + OS env vars
+3. FALLBACK -> auth.json
+```
+
+**WICHTIG:** Alle API Keys MUESSEN in auth.json sein, NICHT in opencode.json!
+
+---
+
+### .env Auto-Loading
+
+OpenCode laedt .env Dateien AUTOMATISCH:
+
+| Ebene | Location | Override? |
+|-------|----------|----------|
+| **Global** | `~/.config/opencode/.env` | Nein (Fallback) |
+| **Lokal** | `./.env` (neben opencode.json) | Ja (ueberschreibt Global) |
+
+**WICHTIG:** .env wird GELADEN BEVOR die {env:VAR} Substitution passiert!
+
+---
+
+### OPENCODE_CONFIG_DIR - Isolierte Profile
+
+Du kannst das Konfigurations-Verzeichnis wechseln:
+
+```bash
+# Standard
+~/.config/opencode/
+
+# Mit OPENCODE_CONFIG_DIR
+export OPENCODE_CONFIG_DIR=~/.config/opencode/profiles/work
+```
+
+**Effekt:** Alle Konfigurationen werden aus dem neuen Verzeichnis geladen.
+
+---
+
+### Provider Umgebungsvariablen
+
+| Provider | Variable | Modelle |
+|----------|----------|--------|
+| **Anthropic** | `ANTHROPIC_API_KEY` | Claude 3.5, Opus |
+| **OpenAI** | `OPENAI_API_KEY` | GPT-4, GPT-5 |
+| **Google Gemini** | `GEMINI_API_KEY` | Gemini 2.5, 3.0, 3.1 |
+| **VertexAI** | `VERTEXAI_PROJECT`, `VERTEXAI_LOCATION` | Enterprise Gemini |
+| **DeepSeek** | `DEEPSEEK_API_KEY` | DeepSeek Coder |
+| **NVIDIA** | `NVIDIA_API_KEY` | Qwen, Llama, Mistral |
+| **OpenCode Zen** | `OPENCODE_API_KEY` | Big Pickle, Uncensored |
+| **MiniMax** | `MINIMAX_API_KEY` | M2.5 |
+| **Kimi** | `KIMI_API_KEY` | K2.5 |
+
+---
+
+### Antigravity OAuth - Google ohne API Key
+
+**Was ist das?** Plugin das Google OAuth statt API Keys nutzt.
+
+**Setup:**
+```json
+{
+  "plugin": ["opencode-antigravity-auth@latest"]
+}
+```
+
+**Dann:**
+```bash
+opencode auth login
+```
+
+**Dateien:**
+- `~/.config/opencode/antigravity-accounts.json` - OAuth Tokens
+- `~/.config/opencode/antigravity.json` - Plugin Config
+
+**Multi-Account:** Das Plugin kann automatisch zwischen Google-Accounts rotieren wenn Rate-Limit erreicht ist.
+
+---
+
+### Sicherheit - env-protection
+
+**Problem:** Agenten koennten .env Dateien lesen und API Keys exfiltrieren!
+
+**Loesung:** env-protection.js Plugin
+
+```bash
+# Plugin in .opencode/plugins/ laden
+```
+
+**Was es macht:**
+- Blockiert Lese-Zugriff auf `.env` Dateien
+- Erlaubt `.env.example` und `.env.template` (keine echten Keys)
+
+**Permissions in opencode.json:**
+```json
+{
+  "permission": {
+    "edit": "deny",
+    "bash": "ask",
+    "webfetch": "allow",
+    "mcp_*": "ask"
+  }
+}
+```
+
+---
+
+### JSONC in oh-my-opencode
+
+oh-my-opencode unterstuetzt JSONC (JSON with Comments):
+
+| Feature | Syntax |
+|---------|--------|
+| Zeilenkommentar | `// Das ist ein Kommentar` |
+| Blockkommentar | `/* Mehrzeilig */` |
+| Trailing Comma | `{ "key": "value", }` |
+
+**Priority:** .jsonc > .json (wenn beide existieren)
+
+---
+
+## Zusammenfassung - KORREKTE Setup-Schritte
+
+```bash
+# 1. API Key generieren (z.B. Google AI Studio)
+# 2. NUR in auth.json eintragen (NICHT in opencode.json!)
+
+# Pruefen:
+cat ~/.local/share/opencode/auth.json | python3 -m json.tool
+
+# 3. Modelle testen:
+opencode run "OK" --model google/gemini-2.5-flash
+
+# 4. Oder Antigravity OAuth nutzen:
+opencode auth login  # Browser oeffnet sich
+```
+
+---
+
+**Letzte Aktualisierung:** 2026-02-22 - KORREKTE Konfiguration dokumentiert
