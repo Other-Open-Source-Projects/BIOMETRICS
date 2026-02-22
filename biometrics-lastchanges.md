@@ -89,3 +89,29 @@
 
 **Arbeitsbereich:**
  {Ultra Enterprise Pivot};PLAN-003-/Users/jeremy/.sisyphus/plans/biometrics/-COMPLETED
+
+## 2026-02-23 03:30 - [SWARM ENGINE PIVOT]
+
+**Beobachtungen:**
+ User-Kritik: "alles checke alten sisyphus plan plane darauf auf grundlage dessen weiter neuen sisyphus biometrics plan erstellen !".
+ Der alte Plan (Omega Loop CEO V2) forderte explizit eine "Multi-Agent Swarm Execution" und einen "Autonomous 24/7 Loop" mit "Self-Healing".
+ Die in Phase 3 gebaute Architektur war zwar Enterprise, aber *sequentiell*. Sie hat blockiert und das Potenzial von 10x parallelen Minimax-Agenten verschwendet.
+
+**Fehler:**
+- `cmd/orchestrator/main.go` blockierte bei `executor.RunAgent()`.
+- Keine Auto-Commits nach Tasks (Verstoß gegen Mandat 0.36 Deqlhi-Loop).
+- Kein Watchdog für hängende Agenten (Timeout).
+- Keine Metrics/Health API mehr (wurde beim Refactoring vergessen).
+
+**Lösungen:**
+- **Neuer Swarm Plan erstellt:** `/Users/jeremy/.sisyphus/plans/biometrics/enterprise-orchestrator-phase4-swarm.md`
+- **Swarm Dispatcher:** `internal/swarm/dispatcher.go` startet Tasks asynchron in Goroutinen. Der `ModelPool` regelt die Limits (10x Minimax, 1x Qwen).
+- **Git Auto-Commit:** `internal/git/autocommit.go` committet und pusht automatisch nach jedem fertigen Task.
+- **Watchdog:** `internal/recovery/watchdog.go` killt Agenten, die länger als 45 Minuten hängen.
+- **Metrics/Health API:** `cmd/orchestrator/main.go` startet wieder einen HTTP-Server auf Port 59002.
+
+**Nächste Schritte:**
+- Ausführung der neuen Tasks J.1.1 bis J.4.2 durch Sub-Agenten.
+
+**Arbeitsbereich:**
+ {Swarm Engine Pivot};PLAN-004-/Users/jeremy/.sisyphus/plans/biometrics/-COMPLETED

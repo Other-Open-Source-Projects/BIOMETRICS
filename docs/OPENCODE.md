@@ -30,7 +30,7 @@ Google Gemini funktionierte NICHT in OpenCode. Alle Versuche schlugen mit `API k
 
 **Aktueller funktionierender Key:**
 ```
-AIzaSyBAHJEO0kych78Sqgi9W_bj3Xv0fH91CKk
+[DEIN_GOOGLE_API_KEY_HIER]
 ```
 
 ### Schritt 2: auth.json reparieren
@@ -42,7 +42,7 @@ Der Google-Eintrag MUSS so aussehen:
 {
   "google": {
     "type": "api",
-    "key": "AIzaSyBAHJEO0kych78Sqgi9W_bj3Xv0fH91CKk"
+    "key": "[DEIN_GOOGLE_API_KEY_HIER]"
   }
 }
 ```
@@ -108,7 +108,7 @@ Dies ist WO der Google API Key gespeichert werden muss!
 {
   "google": {
     "type": "api",
-    "key": "AIzaSyBAHJEO0kych78Sqgi9W_bj3Xv0fH91CKk"
+    "key": "[DEIN_GOOGLE_API_KEY_HIER]"
   }
 }
 ```
@@ -301,7 +301,7 @@ Sollte anzeigen:
 ```json
 "google": {
   "type": "api",
-  "key": "AIzaSyBAHJEO0kych78Sqgi9W_bj3Xv0fH91CKk"
+  "key": "[DEIN_GOOGLE_API_KEY_HIER]"
 }
 ```
 
