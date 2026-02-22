@@ -89,14 +89,16 @@ Generate real revenue through automated tasks while maintaining strict complianc
 | **Main Orchestration** | `qwen-3.5-397b-a17b` | NVIDIA NIM | Best logic, unlimited RPM |
 | **Deep Planning** | `z-ai/glm5` | NVIDIA NIM | Deep reasoning, rare use |
 | **Workers/Coders** | `minimax-m2.5-free` | OpenCode ZEN | Fast, 10x parallel capable |
-| **Librarian/Explorer** | `gemini-3-flash-preview` | Google | Best retrieval, 1M context |
+| **Librarian/Explorer** | `gemini-2.5-flash` | Google | Best retrieval, 1M context |
 
 ### Model Limits (IMPORTANT!)
 
 - **qwen-3.5-397b-a17b**: FREE via NVIDIA NIM - USE AS PRIMARY
 - **z-ai/glm5**: FREE via NVIDIA NIM - Use sparingly for deep planning
 - **minimax-m2.5-free**: FREE via OpenCode ZEN - 10x parallel safe
-- **gemini-3-flash-preview**: 1,000 RPM - Perfect for Librarian/Explorer
+- **gemini-2.5-flash**: 1,000 RPM - Perfect for Librarian/Explorer
+
+**WICHTIG:** Gemini 3 Modelle sind NICHT verfuegbar!
 
 ### WRONG (Will Cause Rate Limits):
 - 2+ agents using same model simultaneously
@@ -105,7 +107,7 @@ Generate real revenue through automated tasks while maintaining strict complianc
 ### CORRECT (Enterprise Best Practice):
 - qwen-3.5-397b-a17b: Main orchestration (1 agent max)
 - minimax-m2.5-free: Workers (up to 10 agents)
-- gemini-3-flash-preview: Retrieval tasks (unlimited)
+- gemini-2.5-flash: Retrieval tasks (unlimited)
 - z-ai/glm5: Rare deep planning (sparingly)
 
 ## REVENUE GENERATION TASKS

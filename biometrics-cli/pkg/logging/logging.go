@@ -70,8 +70,24 @@ type RotatingWriter struct {
 
 // NewRotatingWriter creates a new RotatingWriter.
 func NewRotatingWriter(filename string, config RotationConfig) (*RotatingWriter, error) {
+	// Ensure directory exists even when rotation is disabled
+	dir := filepath.Dir(filename)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create log directory: %w", err)
+	}
+
+	// When rotation is disabled, create a simple non-rotating writer
 	if !config.Enabled {
-		return nil, nil
+		f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open log file: %w", err)
+		}
+		return &RotatingWriter{
+			filename: filename,
+			rotConfig: config,
+			file:     f,
+			openTime:  time.Now(),
+		}, nil
 	}
 
 	// Ensure directory exists

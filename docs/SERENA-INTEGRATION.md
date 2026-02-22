@@ -219,9 +219,11 @@ Serena coordinates model assignments to prevent collisions:
 
 | Model | Category | Max Parallel | Assigned Agents |
 |-------|----------|--------------|-----------------|
-| `google/gemini-3.1-pro-preview-customtools` | build, visual-engineering | 1 | sisyphus, oracle, build |
-| `google/gemini-3.1-pro-preview` | deep, think | 1 | atlas, deep, ultrabrain |
-| `google/gemini-3-flash-preview` | quick, explore | 1 | librarian, explore, quick |
+| `google/gemini-2.5-pro` | build, visual-engineering | 1 | sisyphus, oracle, build |
+| `google/gemini-2.5-flash` | deep, think | 1 | atlas, deep, ultrabrain |
+| `google/gemini-2.5-flash` | quick, explore | 1 | librarian, explore, quick |
+
+**WICHTIG:** Gemini 3 Modelle (3.1-pro-preview, 3-flash-preview) sind NICHT verfuegbar via Standard API!
 
 **ENFORCEMENT:**
 - Serena tracks active model usage
