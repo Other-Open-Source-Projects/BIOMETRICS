@@ -8,66 +8,84 @@
   },
   "agents": {
     "Delqhi": {
-      "model": "google/gemini-3.1-pro-preview-customtools",
-      "category": "general"
+      "model": "nvidia-nim/qwen3.5-397b-a17b",
+      "category": "general",
+      "fallback": ["modal/glm-5-fp8"]
     },
     "sisyphus": {
-      "model": "google/gemini-3.1-pro-preview-customtools",
-      "category": "general"
+      "model": "nvidia-nim/qwen3.5-397b-a17b",
+      "category": "general",
+      "fallback": ["modal/glm-5-fp8"]
     },
     "sisyphus-junior": {
-      "model": "google/gemini-3.1-pro-preview-customtools",
-      "category": "quick"
+      "model": "opencode-zen/minimax-m2.5-free",
+      "category": "quick",
+      "fallback": []
     },
     "prometheus": {
       "model": "google/gemini-3.1-pro-preview",
-      "category": "ultrabrain"
+      "category": "ultrabrain",
+      "fallback": ["modal/glm-5-fp8"]
     },
     "metis": {
-      "model": "google/gemini-3-flash-preview",
-      "category": "ultrabrain"
+      "model": "google/gemini-3-pro-preview",
+      "category": "ultrabrain",
+      "fallback": ["google/gemini-3-flash-preview"]
     },
     "momus": {
-      "model": "google/gemini-3-flash-preview",
-      "category": "ultrabrain"
+      "model": "modal/glm-5-fp8",
+      "category": "ultrabrain",
+      "fallback": ["opencode-zen/minimax-m2.5-free"]
     },
     "oracle": {
-      "model": "google/gemini-3.1-pro-preview-customtools",
-      "category": "ultrabrain"
+      "model": "nvidia-nim/qwen3.5-397b-a17b",
+      "category": "ultrabrain",
+      "fallback": ["modal/glm-5-fp8"]
     },
     "librarian": {
-      "model": "google/gemini-3-flash-preview",
-      "category": "general"
+      "model": "opencode-zen/minimax-m2.5-free",
+      "category": "general",
+      "fallback": []
     },
     "explore": {
       "model": "google/gemini-3-flash-preview",
-      "category": "quick"
+      "category": "quick",
+      "fallback": ["nvidia-nim/qwen3.5-397b-a17b"]
     },
     "frontend-ui-ux-engineer": {
-      "model": "google/gemini-3.1-pro-preview",
-      "category": "visual-engineering"
+      "model": "opencode-zen/minimax-m2.5-free",
+      "category": "visual-engineering",
+      "fallback": []
     },
     "document-writer": {
-      "model": "google/gemini-3.1-pro-preview",
-      "category": "writing"
+      "model": "opencode-zen/minimax-m2.5-free",
+      "category": "writing",
+      "fallback": []
     },
     "multimodal-looker": {
-      "model": "google/gemini-3-flash-preview",
-      "category": "general"
+      "model": "google/gemini-3-pro-preview",
+      "category": "general",
+      "fallback": ["google/gemini-3-flash-preview"]
     },
     "atlas": {
-      "model": "google/gemini-3.1-pro-preview-customtools"
+      "model": "modal/glm-5-fp8",
+      "category": "general",
+      "fallback": ["opencode-zen/minimax-m2.5-free"]
     },
     "build": {
-      "model": "google/gemini-3.1-pro-preview-customtools"
+      "model": "nvidia-nim/qwen3.5-397b-a17b",
+      "category": "build",
+      "fallback": ["modal/glm-5-fp8"]
     },
     "plan": {
-      "model": "google/gemini-3.1-pro-preview"
+      "model": "google/gemini-3.1-pro-preview",
+      "category": "plan",
+      "fallback": ["modal/glm-5-fp8"]
     }
   },
   "categories": {
     "visual-engineering": {
-      "model": "google/gemini-3.1-pro-preview",
+      "model": "opencode-zen/minimax-m2.5-free",
       "temperature": 1
     },
     "ultrabrain": {
@@ -75,7 +93,7 @@
       "temperature": 0.9,
       "thinking": {
         "type": "enabled",
-        "budgetTokens": 16000
+        "budgetTokens": 32768
       }
     },
     "quick": {
@@ -83,12 +101,28 @@
       "temperature": 0.5
     },
     "writing": {
-      "model": "google/gemini-3.1-pro-preview",
+      "model": "opencode-zen/minimax-m2.5-free",
       "temperature": 0.7
     },
     "general": {
-      "model": "google/gemini-3.1-pro-preview-customtools",
+      "model": "nvidia-nim/qwen3.5-397b-a17b",
       "temperature": 0.5
+    },
+    "build": {
+      "model": "nvidia-nim/qwen3.5-397b-a17b",
+      "temperature": 0.7,
+      "thinking": {
+        "type": "enabled",
+        "budgetTokens": 16384
+      }
+    },
+    "plan": {
+      "model": "google/gemini-3.1-pro-preview",
+      "temperature": 0.8,
+      "thinking": {
+        "type": "enabled",
+        "budgetTokens": 16384
+      }
     }
   },
   "claude_code": {
