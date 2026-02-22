@@ -49,6 +49,22 @@ func (l LogLevel) MarshalJSON() ([]byte, error) {
 	return json.Marshal(l.String())
 }
 
+// ParseLogLevel parses a string into a LogLevel.
+func ParseLogLevel(s string) (LogLevel, error) {
+	switch s {
+	case "debug":
+		return DebugLevel, nil
+	case "info":
+		return InfoLevel, nil
+	case "warn", "warning":
+		return WarnLevel, nil
+	case "error":
+		return ErrorLevel, nil
+	default:
+		return DebugLevel, fmt.Errorf("invalid log level: %s", s)
+	}
+}
+
 // LogEntry represents a single structured log entry.
 type LogEntry struct {
 	// Timestamp is when the log entry was created.
@@ -77,6 +93,28 @@ func (e *LogEntry) MarshalJSON() ([]byte, error) {
 		Alias: (*Alias)(e),
 		Level: e.Level.String(),
 	})
+}
+
+// UnmarshalJSON parses the JSON representation of a log entry.
+func (e *LogEntry) UnmarshalJSON(data []byte) error {
+	type Alias LogEntry
+	aux := &struct {
+		*Alias
+		Level string `json:"level"`
+	}{
+		Alias: (*Alias)(e),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if aux.Level != "" {
+		level, err := ParseLogLevel(aux.Level)
+		if err != nil {
+			return err
+		}
+		e.Level = level
+	}
+	return nil
 }
 
 // LoggerConfig contains configuration options for the Logger.

@@ -297,8 +297,10 @@ func TestLoggerWarn(t *testing.T) {
 	if entry.Message != "warn message" {
 		t.Errorf("Message = %v, want %v", entry.Message, "warn message")
 	}
-	if entry.Fields["code"] != 42 {
-		t.Errorf("Fields[code] = %v, want %v", entry.Fields["code"], 42)
+	// JSON unmarshal converts numbers to float64
+	code, ok := entry.Fields["code"].(float64)
+	if !ok || int(code) != 42 {
+		t.Errorf("Fields[code] = %v, want 42", entry.Fields["code"])
 	}
 }
 

@@ -224,7 +224,7 @@ func (g *MassivePromptGenerator) generateParallelAgentsInfo() string {
 }
 
 func (g *MassivePromptGenerator) generateAcceptanceCriteria(task string) string {
-	return fmt.Sprintf(`## ✅ ACCEPTANCE CRITERIA
+	return `## ✅ ACCEPTANCE CRITERIA
 
 Deine Aufgabe ist NUR dann abgeschlossen wenn ALLE folgenden Kriterien erfüllt sind:
 
@@ -242,7 +242,7 @@ Deine Aufgabe ist NUR dann abgeschlossen wenn ALLE folgenden Kriterien erfüllt 
 
 ---
 
-`, task)
+`
 }
 
 func (g *MassivePromptGenerator) generateOutputFormat() string {
