@@ -1,0 +1,50 @@
+/* VS Code Dark Theme Enterprise Styling */
+:root {
+    --vscode-bg: #1e1e1e;
+    --vscode-sidebar: #252526;
+    --vscode-activity-bar: #333333;
+    --vscode-status-bar: #007acc;
+    --vscode-border: #444444;
+    --vscode-text: #cccccc;
+    --vscode-accent: #007fd4;
+    --vscode-tab-active: #1e1e1e;
+    --vscode-tab-inactive: #2d2d2d;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--vscode-bg);
+    color: var(--vscode-text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    overflow: hidden;
+}
+
+.ide-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #424242;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #4f4f4f;
+}
+
+.text-red-500 { color: #f14c4c; }
+.text-green-500 { color: #89d185; }
+
+/* Font Awesome and Google Fonts will be loaded via CDN in index.html */

@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"path/filepath"
+	"strings"
+
 	"os"
 	"time"
 
@@ -51,6 +54,10 @@ func main() {
 	http.HandleFunc("/api/config/toggle-delqhi-loop", handleToggleDelqhiLoop)
 	http.HandleFunc("/api/config/toggle-swarm-engine", handleToggleSwarmEngine)
 	http.HandleFunc("/api/projects", handleProjectsList)
+	http.HandleFunc("/api/files/list", handleFilesList)
+	http.HandleFunc("/api/files/read", handleFilesRead)
+	http.HandleFunc("/api/chat", handleChat)
+
 
 	http.HandleFunc("/api/ratelimit/stats", handleRateLimitStats)
 	http.HandleFunc("/ws", handleWebSocket)
@@ -375,4 +382,90 @@ func handleProjectsList(w http.ResponseWriter, r *http.Request) {
 		{"id": "sin-solver", "name": "SIN-Solver"},
 		{"id": "simone-webshop", "name": "Simone-Webshop"},
 	})
+}
+
+func handleFilesList(w http.ResponseWriter, r *http.Request) {
+	relPath := r.URL.Query().Get("path")
+	if relPath == "" {
+		relPath = "."
+	}
+
+	// Security: Prevent path traversal
+	if strings.Contains(relPath, "..") {
+		http.Error(w, "Invalid path", http.StatusBadRequest)
+		return
+	}
+
+	// Base path is the project root (assuming BIOMETRICS for now or based on current project)
+	// In a real scenario, this would be relative to the selected project's root.
+	basePath := "/Users/jeremy/dev/BIOMETRICS" 
+	fullPath := filepath.Join(basePath, relPath)
+
+	entries, err := os.ReadDir(fullPath)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var result []map[string]interface{}
+	for _, entry := range entries {
+		info, _ := entry.Info()
+		result = append(result, map[string]interface{}{
+			"name":  entry.Name(),
+			"isDir": entry.IsDir(),
+			"size":  info.Size(),
+			"path":  filepath.Join(relPath, entry.Name()),
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
+}
+
+func handleFilesRead(w http.ResponseWriter, r *http.Request) {
+	relPath := r.URL.Query().Get("path")
+	if relPath == "" {
+		http.Error(w, "Path required", http.StatusBadRequest)
+		return
+	}
+
+	if strings.Contains(relPath, "..") {
+		http.Error(w, "Invalid path", http.StatusBadRequest)
+		return
+	}
+
+	basePath := "/Users/jeremy/dev/BIOMETRICS"
+	fullPath := filepath.Join(basePath, relPath)
+
+	content, err := os.ReadFile(fullPath)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write(content)
+}
+
+func handleChat(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Message string `json:"message"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	response := map[string]string{
+		"reply": "AI Response: " + req.Message + " (Swarm Engine processing...)",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
