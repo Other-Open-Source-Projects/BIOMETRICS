@@ -16,6 +16,10 @@ var (
 	generator *codegen.CodeGenerator
 	wsClients = make(map[*websocket.Conn]bool)
 	wsChan    = make(chan string, 100)
+	// Global state for Mandates
+	delqhiLoopEnabled  bool = false
+	swarmEngineEnabled bool = true
+
 )
 
 var upgrader = websocket.Upgrader{
@@ -44,6 +48,10 @@ func main() {
 	http.HandleFunc("/api/docker/stats", handleDockerStats)
 	http.HandleFunc("/api/scheduler/jobs", handleSchedulerJobs)
 	http.HandleFunc("/api/config", handleConfig)
+	http.HandleFunc("/api/config/toggle-delqhi-loop", handleToggleDelqhiLoop)
+	http.HandleFunc("/api/config/toggle-swarm-engine", handleToggleSwarmEngine)
+	http.HandleFunc("/api/projects", handleProjectsList)
+
 	http.HandleFunc("/api/ratelimit/stats", handleRateLimitStats)
 	http.HandleFunc("/ws", handleWebSocket)
 
@@ -305,6 +313,8 @@ func handleConfig(w http.ResponseWriter, r *http.Request) {
 		"model":        "google/antigravity-gemini-3.1-pro",
 		"auto_healing": true,
 		"scheduler":    true,
+		"delqhi_loop":  delqhiLoopEnabled,
+		"swarm_engine": swarmEngineEnabled,
 	})
 }
 
@@ -315,5 +325,52 @@ func handleRateLimitStats(w http.ResponseWriter, r *http.Request) {
 			"default": map[string]int{"rate": 100, "burst": 10},
 		},
 		"current": map[string]int{},
+	})
+}
+
+func handleToggleDelqhiLoop(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+	delqhiLoopEnabled = req.Enabled
+	generator.SetDelqhiLoop(req.Enabled)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"status": "success", "delqhi_loop": delqhiLoopEnabled})
+	broadcastUpdate(fmt.Sprintf("Delqhi-Loop set to %v", delqhiLoopEnabled))
+}
+
+func handleToggleSwarmEngine(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+	swarmEngineEnabled = req.Enabled
+	generator.SetSwarmEngine(req.Enabled)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"status": "success", "swarm_engine": swarmEngineEnabled})
+	broadcastUpdate(fmt.Sprintf("Swarm Engine set to %v", swarmEngineEnabled))
+}
+
+func handleProjectsList(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode([]map[string]string{
+		{"id": "biometrics", "name": "BIOMETRICS (Core)"},
+		{"id": "sin-solver", "name": "SIN-Solver"},
+		{"id": "simone-webshop", "name": "Simone-Webshop"},
 	})
 }

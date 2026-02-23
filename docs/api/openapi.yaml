@@ -835,3 +835,86 @@ components:
             - message
       required:
         - error
+
+  /api/config/toggle-delqhi-loop:
+    post:
+      summary: Toggle Delqhi-Loop Mode
+      description: Enables or disables the infinite task production mode (Mandate 0.36)
+      tags:
+        - Configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - enabled
+              properties:
+                enabled:
+                  type: boolean
+                  description: Enable or disable the loop
+      responses:
+        '200':
+          description: Successfully toggled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  delqhi_loop:
+                    type: boolean
+
+  /api/config/toggle-swarm-engine:
+    post:
+      summary: Toggle Swarm Engine
+      description: Enables or disables the parallel Swarm execution (Mandate 0.11)
+      tags:
+        - Configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - enabled
+              properties:
+                enabled:
+                  type: boolean
+                  description: Enable or disable the swarm engine
+      responses:
+        '200':
+          description: Successfully toggled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  swarm_engine:
+                    type: boolean
+
+  /api/projects:
+    get:
+      summary: List available projects
+      description: Returns a list of projects for isolation (Mandate 0.38)
+      tags:
+        - Projects
+      responses:
+        '200':
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string

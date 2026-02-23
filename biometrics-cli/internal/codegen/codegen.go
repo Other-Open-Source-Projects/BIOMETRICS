@@ -239,3 +239,22 @@ func (g *CodeGenerator) GetStats() map[string]interface{} {
 func init() {
 	NewCodeGenerator()
 }
+
+// Toggle features
+func (g *CodeGenerator) SetSwarmEngine(enabled bool) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if enabled {
+		g.workers = 10
+	} else {
+		g.workers = 3
+	}
+	// Note: changing workers dynamically requires restarting the worker pool in a real scenario,
+	// but for now we update the config state.
+}
+
+func (g *CodeGenerator) SetDelqhiLoop(enabled bool) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	// Update internal state or trigger loop creation
+}

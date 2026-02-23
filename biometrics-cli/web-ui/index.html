@@ -358,6 +358,26 @@
         }
 
         // Load server status
+        async function loadConfig() {
+            try {
+                const res = await fetch(`${API_URL}/api/config`);
+                if(!res.ok) return;
+                const config = await res.json();
+                document.getElementById("delqhi-toggle").checked = config.delqhi_loop;
+                document.getElementById("swarm-toggle").checked = config.swarm_engine;
+            } catch (err) {}
+        }
+
+        async function loadProjects() {
+            try {
+                const res = await fetch(`${API_URL}/api/projects`);
+                if(!res.ok) return;
+                const projects = await res.json();
+                const select = document.getElementById("project-selector");
+                select.innerHTML = projects.map(p => `<option value="${p.id}">${p.name}</option>`).join("");
+            } catch (err) {}
+        }
+
         async function loadStatus() {
             try {
                 const res = await fetch(`${API_URL}/api/status`);
@@ -407,6 +427,9 @@
                 document.getElementById('task-form').reset();
                 loadTasks();
                 loadStatus();
+        loadConfig();
+        loadProjects();
+
             } catch (err) {
                 addLog('SYSTEM', err.message, 'warn');
                 const taskList = document.getElementById('task-list');
@@ -433,13 +456,15 @@
         });
 
         // Loop / Swarm Toggle listeners
-        document.getElementById('delqhi-toggle').addEventListener('change', (e) => {
+        document.getElementById('delqhi-toggle').addEventListener('change', async (e) => {
+            await fetch(`${API_URL}/api/config/toggle-delqhi-loop`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: e.target.checked }) });
             const state = e.target.checked ? 'ENABLED' : 'DISABLED';
             addLog('SYSTEM', `Delqhi-Loop Mode ${state} (Mandate 0.36)`, e.target.checked ? 'success' : 'warn');
             if(e.target.checked) addLog('SYSTEM', 'Infinite 24/7 task production active.', 'info');
         });
 
-        document.getElementById('swarm-toggle').addEventListener('change', (e) => {
+        document.getElementById('swarm-toggle').addEventListener('change', async (e) => {
+            await fetch(`${API_URL}/api/config/toggle-swarm-engine`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: e.target.checked }) });
             const state = e.target.checked ? 'ENABLED' : 'DISABLED';
             addLog('SYSTEM', `Swarm Parallelism ${state}`, e.target.checked ? 'success' : 'warn');
         });
@@ -452,6 +477,9 @@
         connectWebSocket();
         loadTasks();
         loadStatus();
+        loadConfig();
+        loadProjects();
+
         setInterval(loadStatus, 5000);
         setInterval(loadTasks, 10000);
     </script>

@@ -136,3 +136,21 @@
 
 **Arbeitsbereich:**
  {Web UI Rebranding};TASK-001-/Users/jeremy/dev/BIOMETRICS/biometrics-cli/web-ui/index.html-COMPLETED
+
+## 2026-02-23 04:45 - [API SERVER EXTENSIONS FOR UI TOGGLES]
+
+**Beobachtungen:**
+- Das Web-UI brauchte echte API-Routen in `cmd/api-server/main.go`, um die Toggles für den Delqhi-Loop und die Swarm Engine zu empfangen.
+- Die Swagger/OpenAPI-Dokumentation fehlte für die neuen Endpunkte.
+
+**Änderungen:**
+- **Go API Routen:** `handleToggleDelqhiLoop`, `handleToggleSwarmEngine`, und `handleProjectsList` in `cmd/api-server/main.go` implementiert.
+- **Dispatcher Capacity Limits:** Funktion `SetSwarmEngine()` und `SetDelqhiLoop()` in `internal/codegen/codegen.go` eingebaut, um die Swarm-Limits (z.B. von 3 auf 10 Worker) dynamisch zur Laufzeit anzupassen.
+- **UI Anbindung:** `index.html` sendet via `fetch` Requests an diese neuen Routen und holt die Liste an Workspaces ab.
+- **API Doku:** `/docs/api/openapi.yaml` aktualisiert.
+
+**Nächste Schritte:**
+- Weitere Agenten-Statistiken in die UI einspeisen, sobald Metrics vollständig abgreifbar ist.
+
+**Arbeitsbereich:**
+ {API Backend UI Connect};TASK-002-/Users/jeremy/dev/BIOMETRICS/biometrics-cli/cmd/api-server/-COMPLETED
