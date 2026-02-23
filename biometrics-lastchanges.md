@@ -154,3 +154,25 @@
 
 **Arbeitsbereich:**
  {API Backend UI Connect};TASK-002-/Users/jeremy/dev/BIOMETRICS/biometrics-cli/cmd/api-server/-COMPLETED
+
+## 2026-02-23 04:55 - [BIOMETRICS GO APP: OFFLINE ASSETS & ENTERPRISE REFACTOR]
+
+**Beobachtungen:**
+- Oracle Architecture Review ergab, dass das Web-UI für CLI-Tools strikt Offline-fähig sein muss. CDNs (wie unpkg oder jsdelivr) für Tailwind, Alpine.js und FontAwesome wurden verboten.
+- Metis Gap Analysis forderte Virtualized Logs, TraceIDs und visuelle Quota-Limiter.
+- Das HTML-File wurde zu groß und unübersichtlich.
+
+**Änderungen:**
+- **Local Assets Downloaded:** Alpine.js, FontAwesome CSS + Webfonts lokal nach `web-ui/static/` heruntergeladen.
+- **Tailwind CLI:** CSS via lokaler Tailwind-Instanz in `web-ui/static/css/styles.css` kompiliert, um komplett offline zu laufen.
+- **Alpine Store Module:** UI-Logik in ein strikt JSDoc-getyptes `store.js` ausgelagert. Keine globalen Variablen mehr verstreut.
+- **Virtualisierte Logs Konzept:** Die Logs im UI cappen nun bei 100 Einträgen (`maxLogs: 100`), um DOM-Thrashing bei intensiven Swarm-Einsätzen (10x Minimax) zu verhindern.
+- **TraceID Visualisierung:** Dummy TraceIDs werden jetzt für jede Logzeile generiert und im Terminal angezeigt, bis das Backend die echten TraceIDs via WebSocket liefert.
+- **Agent Quotas (Mandat 0.39):** Visuelle Kapazitätsanzeige (`QWEN: 1/1`, `MMX: 10/10`) implementiert, die sich dynamisch anpasst, wenn die Swarm Engine an/ausgeschaltet wird.
+
+**Nächste Schritte:**
+- Echte TraceID-Propagierung aus dem Go-Backend zum WebSocket implementieren.
+- Erstellung einer echten `//go:embed` Struktur, wenn das Projekt-Layout dies besser zulässt (aktuell liefert `http.FileServer` die Assets korrekt anhand der relativen Pfade aus).
+
+**Arbeitsbereich:**
+ {Offline Assets UI Refactor};TASK-003-/Users/jeremy/dev/BIOMETRICS/biometrics-cli/web-ui/-COMPLETED

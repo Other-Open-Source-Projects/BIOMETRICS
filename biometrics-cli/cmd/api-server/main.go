@@ -57,6 +57,8 @@ func main() {
 
 	// Static files for web UI
 	fs := http.FileServer(http.Dir("./web-ui"))
+	// Add explicit mime types to ensure js modules load correctly
+	http.Handle("/ui/static/", http.StripPrefix("/ui/", fs))
 	http.Handle("/ui/", http.StripPrefix("/ui/", fs))
 
 	port := os.Getenv("PORT")

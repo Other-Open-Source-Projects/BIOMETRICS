@@ -4,60 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BIOMETRICS GO - Enterprise Orchestrator</title>
-    <!-- Tailwind CSS for rapid Enterprise UI styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        dark: '#0f172a',
-                        darker: '#0b1120',
-                        brand: {
-                            500: '#7D56F4',
-                            600: '#6b46c1',
-                            700: '#553c9a',
-                        },
-                        neon: '#04B575',
-                        alert: '#F56565'
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        body { font-family: 'Inter', -apple-system, sans-serif; background-color: #0b1120; color: #e2e8f0; }
-        .glass-panel {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .log-container {
-            font-family: 'JetBrains Mono', 'Fira Code', monospace;
-            scrollbar-width: thin;
-        }
-        .log-container::-webkit-scrollbar { width: 6px; }
-        .log-container::-webkit-scrollbar-thumb { background-color: #475569; border-radius: 3px; }
-        .pulse-green { box-shadow: 0 0 0 0 rgba(4, 181, 117, 0.7); animation: pulse-green 2s infinite; }
-        @keyframes pulse-green {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(4, 181, 117, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(4, 181, 117, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(4, 181, 117, 0); }
-        }
-        .btn-brand {
-            background: linear-gradient(135deg, #7D56F4 0%, #553c9a 100%);
-            transition: all 0.3s ease;
-        }
-        .btn-brand:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(125, 86, 244, 0.4);
-        }
-    </style>
+    <!-- Local Assets ONLY - Mandate Oracle Review -->
+    <link rel="stylesheet" href="/ui/static/css/styles.css">
+    <link rel="stylesheet" href="/ui/static/css/fontawesome.min.css">
+    <script src="/ui/static/js/alpine.min.js" defer></script>
+    <script src="/ui/static/js/store.js" defer></script>
 </head>
-<body class="h-screen flex overflow-hidden">
+<body class="h-screen flex overflow-hidden" x-data="biometricsStore">
 
     <!-- Sidebar -->
     <aside class="w-64 glass-panel border-r border-gray-800 flex flex-col z-10 relative">
@@ -69,10 +22,13 @@
         
         <div class="p-4 border-b border-gray-800">
             <label class="text-xs text-gray-400 font-semibold mb-2 block uppercase tracking-wider">Active Project (0.38)</label>
-            <select id="project-selector" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm focus:border-brand-500 focus:outline-none">
-                <option value="biometrics">BIOMETRICS (Core)</option>
-                <option value="sin-solver">SIN-Solver</option>
-                <option value="simone-webshop">Simone-Webshop</option>
+            <select x-model="projectId" @change="addLog('SYSTEM', `Workspace isolated to project: ${$event.target.value.toUpperCase()} (Mandate 0.38)`, 'info')" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm focus:border-brand-500 focus:outline-none">
+                <template x-for="p in projects" :key="p.id">
+                    <option :value="p.id" x-text="p.name"></option>
+                </template>
+                <!-- Fallback if projects don't load -->
+                <option value="biometrics" x-show="projects.length === 0">BIOMETRICS (Core)</option>
+                <option value="sin-solver" x-show="projects.length === 0">SIN-Solver</option>
             </select>
         </div>
 
@@ -103,8 +59,8 @@
         
         <div class="p-4 border-t border-gray-800">
             <div class="flex items-center">
-                <div id="ws-indicator" class="w-3 h-3 rounded-full bg-gray-500 mr-3"></div>
-                <span id="status-text" class="text-sm font-medium">Connecting...</span>
+                <div class="w-3 h-3 rounded-full mr-3" :class="wsIndicatorClass"></div>
+                <span class="text-sm font-medium" x-text="wsStatus">Connecting...</span>
             </div>
         </div>
     </aside>
@@ -122,7 +78,7 @@
                 <div class="flex items-center">
                     <span class="text-sm mr-3 font-semibold text-gray-300" title="Auto-adds 5 tasks after each completion">Delqhi-Loop Mode</span>
                     <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="delqhi-toggle" class="sr-only peer">
+                        <input type="checkbox" x-model="delqhiLoop" @change="toggleDelqhiLoop" class="sr-only peer">
                         <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-neon"></div>
                     </label>
                 </div>
@@ -131,12 +87,18 @@
                 <div class="flex items-center">
                     <span class="text-sm mr-3 font-semibold text-gray-300" title="Allows 10x Minimax parallel agents">Swarm Engine</span>
                     <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="swarm-toggle" class="sr-only peer" checked>
+                        <input type="checkbox" x-model="swarmEngine" @change="toggleSwarmEngine" class="sr-only peer">
                         <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500"></div>
                     </label>
                 </div>
                 
-                <div class="text-sm text-gray-400" id="timestamp"></div>
+                <div class="text-sm text-gray-400 border-l border-gray-700 pl-4">
+                    <!-- Agent Capacity Indicator (Mandate 0.39) -->
+                    <div class="flex space-x-3 text-xs font-mono">
+                        <span class="text-brand-500">QWEN: 1/1</span>
+                        <span class="text-neon">MMX: <span x-text="swarmEngine ? '10/10' : '3/3'"></span></span>
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -148,7 +110,7 @@
                 <div class="glass-panel p-6 rounded-xl border border-gray-800 flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-400 uppercase font-bold tracking-wider">Active Tasks</p>
-                        <h3 class="text-3xl font-bold text-white mt-1" id="stat-active-tasks">-</h3>
+                        <h3 class="text-3xl font-bold text-white mt-1" x-text="activeTasks">-</h3>
                     </div>
                     <div class="p-3 bg-brand-500 bg-opacity-20 rounded-lg text-brand-500">
                         <i class="fa-solid fa-list-check fa-xl"></i>
@@ -157,7 +119,7 @@
                 <div class="glass-panel p-6 rounded-xl border border-gray-800 flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-400 uppercase font-bold tracking-wider">Completed</p>
-                        <h3 class="text-3xl font-bold text-white mt-1" id="stat-total-tasks">-</h3>
+                        <h3 class="text-3xl font-bold text-white mt-1" x-text="totalTasks">-</h3>
                     </div>
                     <div class="p-3 bg-neon bg-opacity-20 rounded-lg text-neon">
                         <i class="fa-solid fa-check-double fa-xl"></i>
@@ -165,8 +127,8 @@
                 </div>
                 <div class="glass-panel p-6 rounded-xl border border-gray-800 flex items-center justify-between">
                     <div>
-                        <p class="text-sm text-gray-400 uppercase font-bold tracking-wider">Active Agents</p>
-                        <h3 class="text-3xl font-bold text-white mt-1" id="stat-agents">3 / 10</h3>
+                        <p class="text-sm text-gray-400 uppercase font-bold tracking-wider">Agent Pool</p>
+                        <h3 class="text-3xl font-bold text-white mt-1" x-text="swarmEngine ? '11 Max' : '4 Max'">-</h3>
                     </div>
                     <div class="p-3 bg-blue-500 bg-opacity-20 rounded-lg text-blue-500">
                         <i class="fa-solid fa-robot fa-xl"></i>
@@ -174,8 +136,8 @@
                 </div>
                 <div class="glass-panel p-6 rounded-xl border border-gray-800 flex items-center justify-between">
                     <div>
-                        <p class="text-sm text-gray-400 uppercase font-bold tracking-wider">System Status</p>
-                        <h3 class="text-xl font-bold text-white mt-1" id="stat-version">Online</h3>
+                        <p class="text-sm text-gray-400 uppercase font-bold tracking-wider">System Version</p>
+                        <h3 class="text-xl font-bold text-white mt-1" x-text="version">v1.0.0</h3>
                     </div>
                     <div class="p-3 bg-gray-500 bg-opacity-20 rounded-lg text-gray-400">
                         <i class="fa-solid fa-server fa-xl"></i>
@@ -186,7 +148,7 @@
             <!-- Task Creation Form -->
             <div class="glass-panel rounded-xl border border-gray-800 p-6 flex flex-col h-full">
                 <h3 class="text-lg font-bold mb-4 border-b border-gray-800 pb-2"><i class="fa-solid fa-bolt mr-2 text-yellow-400"></i> Dispatch Swarm Task</h3>
-                <form id="task-form" class="flex-1 flex flex-col">
+                <form id="task-form" @submit.prevent="dispatchTask" class="flex-1 flex flex-col">
                     <div class="mb-4">
                         <label class="block text-sm text-gray-400 mb-1">Task Title</label>
                         <input type="text" id="task-title" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:border-brand-500 focus:outline-none" placeholder="e.g. Implement Auth Service" required>
@@ -218,270 +180,59 @@
             <div class="glass-panel rounded-xl border border-gray-800 p-6 flex flex-col">
                 <div class="flex justify-between items-center mb-4 border-b border-gray-800 pb-2">
                     <h3 class="text-lg font-bold"><i class="fa-solid fa-list-ol mr-2 text-blue-400"></i> Active Swarm Queue</h3>
-                    <button onclick="loadTasks()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-rotate-right"></i></button>
+                    <button @click="fetchTasks" class="text-gray-400 hover:text-white"><i class="fa-solid fa-rotate-right"></i></button>
                 </div>
                 <div id="task-list" class="flex-1 overflow-y-auto pr-2 space-y-3">
-                    <div class="p-6 border border-gray-800 border-dashed rounded-lg text-center">
+                    
+                    <div x-show="tasks.length === 0" class="p-6 border border-gray-800 border-dashed rounded-lg text-center">
                         <i class="fa-solid fa-mug-hot text-gray-600 fa-2x mb-3"></i>
                         <p class="text-gray-400 text-sm">Swarm queue is empty.</p>
                         <p class="text-gray-500 text-xs mt-1">Awaiting instructions.</p>
                     </div>
+
+                    <template x-for="task in tasks" :key="task.id">
+                        <div class="p-4 border-l-4 rounded-r-lg transition-all" :class="getTaskStatusClass(task.status)">
+                            <div class="flex justify-between items-start">
+                                <h4 class="font-bold text-white text-sm" x-text="task.title"></h4>
+                                <i class="fa-solid" :class="getTaskIconClass(task.status)"></i>
+                            </div>
+                            <!-- Intervention State for Sicher Gate -->
+                            <div x-show="task.status === 'blocked' || task.status === 'intervention'" class="mt-2 p-2 bg-alert bg-opacity-20 rounded border border-alert text-xs flex justify-between items-center">
+                                <span class="text-alert font-bold"><i class="fa-solid fa-hand"></i> SICHER? GATE</span>
+                                <div class="space-x-2">
+                                    <button class="bg-gray-800 hover:bg-gray-700 px-2 py-1 rounded text-white">Rollback</button>
+                                    <button class="bg-brand-500 hover:bg-brand-600 px-2 py-1 rounded text-white">Approve</button>
+                                </div>
+                            </div>
+                            <div class="mt-2 text-xs text-gray-400 flex justify-between items-center">
+                                <span><i class="fa-solid fa-robot mr-1"></i> <span x-text="task.agent"></span></span>
+                                <span class="bg-gray-900 px-2 py-1 rounded text-gray-300 font-mono">ID: <span x-text="task.id.substring(0,8)"></span></span>
+                            </div>
+                        </div>
+                    </template>
                 </div>
             </div>
 
-            <!-- System Logs -->
+            <!-- System Logs (Virtualized Concept) -->
             <div class="glass-panel rounded-xl border border-gray-800 p-6 flex flex-col">
                 <div class="flex justify-between items-center mb-4 border-b border-gray-800 pb-2">
                     <h3 class="text-lg font-bold"><i class="fa-solid fa-terminal mr-2 text-neon"></i> Orchestrator Terminal</h3>
-                    <button onclick="document.getElementById('logs').innerHTML=''" class="text-gray-400 hover:text-white text-sm"><i class="fa-solid fa-eraser"></i> Clear</button>
+                    <button @click="clearLogs" class="text-gray-400 hover:text-white text-sm"><i class="fa-solid fa-eraser"></i> Clear</button>
                 </div>
-                <div id="logs" class="flex-1 overflow-y-auto log-container bg-gray-900 rounded-lg p-4 text-xs leading-relaxed space-y-1">
-                    <!-- Logs injected here -->
+                <div id="terminal-logs" class="flex-1 overflow-y-auto log-container bg-gray-900 rounded-lg p-4 text-xs leading-relaxed space-y-1">
+                    <template x-for="log in logs" :key="log.id">
+                        <div class="mb-1" :class="getColorClass(log.type)">
+                            <span class="text-gray-500" x-text="'[' + log.time + ']'"></span>
+                            <span class="text-gray-600 mx-1" x-text="log.traceId" title="TraceID (Mandate 0.37)"></span>
+                            <span class="font-bold" :class="getSourceColorClass(log.source)" x-text="'[' + log.source + ']'"></span>
+                            <span x-text="log.message"></span>
+                        </div>
+                    </template>
+                    <div x-show="logs.length === 0" class="text-gray-600 text-center italic mt-10">Awaiting telemetry streams...</div>
                 </div>
             </div>
 
         </div>
     </main>
-
-    <script>
-        const API_URL = window.location.origin;
-        let ws;
-
-        // Connect WebSocket
-        function connectWebSocket() {
-            ws = new WebSocket(`ws://${window.location.host}/ws`);
-            const indicator = document.getElementById('ws-indicator');
-            const statusText = document.getElementById('status-text');
-
-            ws.onopen = () => {
-                statusText.textContent = 'Swarm Link Active';
-                indicator.className = 'w-3 h-3 rounded-full mr-3 bg-neon pulse-green';
-                addLog('SYSTEM', 'WebSocket connection established. Swarm protocol ready.', 'success');
-            };
-
-            ws.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    if (data.type === 'update') {
-                        addLog('ORCHESTRATOR', data.message, 'info');
-                        loadTasks();
-                    } else if (data.type === 'log') {
-                        addLog(data.agent || 'AGENT', data.message, data.level || 'info');
-                    }
-                } catch(e) {
-                    addLog('RAW', event.data, 'info');
-                }
-            };
-
-            ws.onclose = () => {
-                statusText.textContent = 'Link Offline';
-                indicator.className = 'w-3 h-3 rounded-full mr-3 bg-alert';
-                addLog('SYSTEM', 'Connection lost. Re-establishing link...', 'error');
-                setTimeout(connectWebSocket, 3000);
-            };
-        }
-
-        // Add log entry
-        function addLog(source, message, type = 'info') {
-            const logs = document.getElementById('logs');
-            const time = new Date().toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit'});
-            
-            let colorClass = 'text-gray-300';
-            if (type === 'error') colorClass = 'text-alert';
-            if (type === 'success') colorClass = 'text-neon';
-            if (type === 'warn') colorClass = 'text-yellow-400';
-
-            let sourceColor = 'text-gray-400';
-            if(source === 'SYSTEM') sourceColor = 'text-purple-400';
-            if(source === 'ORCHESTRATOR') sourceColor = 'text-blue-400';
-            if(source === 'USER') sourceColor = 'text-neon';
-            if(source === 'AGENT' || source.toLowerCase().includes('sisyphus')) sourceColor = 'text-orange-400';
-
-            const entry = document.createElement('div');
-            entry.className = `mb-1 ${colorClass}`;
-            entry.innerHTML = `<span class="text-gray-500">[${time}]</span> <span class="${sourceColor} font-bold">[${source}]</span> ${message}`;
-            
-            logs.appendChild(entry);
-            logs.scrollTop = logs.scrollHeight;
-        }
-
-        // Load tasks
-        async function loadTasks() {
-            try {
-                const res = await fetch(`${API_URL}/api/tasks/list`);
-                if(!res.ok) throw new Error('API offline');
-                const tasks = await res.json();
-                
-                const taskList = document.getElementById('task-list');
-                if (!tasks || tasks.length === 0) {
-                    taskList.innerHTML = `
-                        <div class="p-6 border border-gray-800 border-dashed rounded-lg text-center">
-                            <i class="fa-solid fa-mug-hot text-gray-600 fa-2x mb-3"></i>
-                            <p class="text-gray-400 text-sm">Swarm queue is empty.</p>
-                            <p class="text-gray-500 text-xs mt-1">Awaiting Delqhi-Loop instructions.</p>
-                        </div>`;
-                    return;
-                }
-
-                taskList.innerHTML = tasks.map(task => {
-                    let statusColor = 'border-gray-600';
-                    let icon = 'fa-clock';
-                    let pulseClass = '';
-                    
-                    if(task.status === 'running' || task.status === 'in_progress') {
-                        statusColor = 'border-yellow-500';
-                        icon = 'fa-circle-notch fa-spin text-yellow-500';
-                        pulseClass = 'bg-yellow-500 bg-opacity-10';
-                    } else if (task.status === 'completed' || task.status === 'done') {
-                        statusColor = 'border-neon';
-                        icon = 'fa-check text-neon';
-                    } else if (task.status === 'failed') {
-                        statusColor = 'border-alert';
-                        icon = 'fa-triangle-exclamation text-alert';
-                    }
-
-                    return `
-                    <div class="p-4 border-l-4 ${statusColor} bg-gray-800 bg-opacity-50 rounded-r-lg ${pulseClass} transition-all">
-                        <div class="flex justify-between items-start">
-                            <h4 class="font-bold text-white text-sm">${task.title}</h4>
-                            <i class="fa-solid ${icon}"></i>
-                        </div>
-                        <div class="mt-2 text-xs text-gray-400 flex justify-between items-center">
-                            <span><i class="fa-solid fa-robot mr-1"></i> ${task.agent}</span>
-                            <span class="bg-gray-900 px-2 py-1 rounded text-gray-300 font-mono">ID: ${task.id.substring(0,8)}</span>
-                        </div>
-                    </div>
-                `}).join('');
-            } catch (err) {
-                // If API is truly offline, we keep whatever is already rendered (mock or real)
-            }
-        }
-
-        // Load server status
-        async function loadConfig() {
-            try {
-                const res = await fetch(`${API_URL}/api/config`);
-                if(!res.ok) return;
-                const config = await res.json();
-                document.getElementById("delqhi-toggle").checked = config.delqhi_loop;
-                document.getElementById("swarm-toggle").checked = config.swarm_engine;
-            } catch (err) {}
-        }
-
-        async function loadProjects() {
-            try {
-                const res = await fetch(`${API_URL}/api/projects`);
-                if(!res.ok) return;
-                const projects = await res.json();
-                const select = document.getElementById("project-selector");
-                select.innerHTML = projects.map(p => `<option value="${p.id}">${p.name}</option>`).join("");
-            } catch (err) {}
-        }
-
-        async function loadStatus() {
-            try {
-                const res = await fetch(`${API_URL}/api/status`);
-                if(!res.ok) return;
-                const status = await res.json();
-                
-                document.getElementById('stat-active-tasks').textContent = status.active_tasks || '0';
-                document.getElementById('stat-total-tasks').textContent = status.total_tasks || '0';
-                if(status.version) document.getElementById('stat-version').textContent = status.version;
-                
-            } catch (err) {
-                // Silent fail
-            }
-            document.getElementById('timestamp').textContent = new Date().toLocaleString();
-        }
-
-        // Create task
-        document.getElementById('task-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const title = document.getElementById('task-title').value;
-            const description = document.getElementById('task-description').value;
-            const agent = document.getElementById('task-agent').value;
-            const project = document.getElementById('project-selector').value;
-
-            addLog('USER', `Dispatching Task: ${title} to ${agent} [${project}]`, 'success');
-
-            try {
-                const res = await fetch(`${API_URL}/api/tasks/create`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title, description, agent, project }) // Sent with Project ID (Mandate 0.38)
-                });
-
-                if(!res.ok) throw new Error('API Offline - Simulating task creation');
-                
-                const task = await res.json();
-                addLog('ORCHESTRATOR', `Task registered: ${task.id}`, 'info');
-                
-                // Execute task
-                await fetch(`${API_URL}/api/tasks/execute`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ task_id: task.id })
-                });
-
-                document.getElementById('task-form').reset();
-                loadTasks();
-                loadStatus();
-        loadConfig();
-        loadProjects();
-
-            } catch (err) {
-                addLog('SYSTEM', err.message, 'warn');
-                const taskList = document.getElementById('task-list');
-                const mockHtml = `
-                    <div class="p-4 border-l-4 border-yellow-500 bg-gray-800 bg-opacity-50 rounded-r-lg bg-yellow-500 bg-opacity-10 mb-3">
-                        <div class="flex justify-between items-start">
-                            <h4 class="font-bold text-white text-sm">${title}</h4>
-                            <i class="fa-solid fa-circle-notch fa-spin text-yellow-500"></i>
-                        </div>
-                        <div class="mt-2 text-xs text-gray-400 flex justify-between items-center">
-                            <span><i class="fa-solid fa-robot mr-1"></i> ${agent}</span>
-                            <span class="bg-gray-900 px-2 py-1 rounded text-gray-300 font-mono">ID: mock-${Math.floor(Math.random()*10000)}</span>
-                        </div>
-                    </div>`;
-                if(taskList.innerHTML.includes('Swarm queue is empty')) {
-                    taskList.innerHTML = mockHtml;
-                } else {
-                    taskList.innerHTML = mockHtml + taskList.innerHTML;
-                }
-                setTimeout(() => {
-                    document.getElementById('task-form').reset();
-                }, 500);
-            }
-        });
-
-        // Loop / Swarm Toggle listeners
-        document.getElementById('delqhi-toggle').addEventListener('change', async (e) => {
-            await fetch(`${API_URL}/api/config/toggle-delqhi-loop`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: e.target.checked }) });
-            const state = e.target.checked ? 'ENABLED' : 'DISABLED';
-            addLog('SYSTEM', `Delqhi-Loop Mode ${state} (Mandate 0.36)`, e.target.checked ? 'success' : 'warn');
-            if(e.target.checked) addLog('SYSTEM', 'Infinite 24/7 task production active.', 'info');
-        });
-
-        document.getElementById('swarm-toggle').addEventListener('change', async (e) => {
-            await fetch(`${API_URL}/api/config/toggle-swarm-engine`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: e.target.checked }) });
-            const state = e.target.checked ? 'ENABLED' : 'DISABLED';
-            addLog('SYSTEM', `Swarm Parallelism ${state}`, e.target.checked ? 'success' : 'warn');
-        });
-        
-        document.getElementById('project-selector').addEventListener('change', (e) => {
-            addLog('SYSTEM', `Workspace isolated to project: ${e.target.value.toUpperCase()} (Mandate 0.38)`, 'info');
-        });
-
-        // Initialize
-        connectWebSocket();
-        loadTasks();
-        loadStatus();
-        loadConfig();
-        loadProjects();
-
-        setInterval(loadStatus, 5000);
-        setInterval(loadTasks, 10000);
-    </script>
 </body>
 </html>
