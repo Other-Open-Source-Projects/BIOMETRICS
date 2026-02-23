@@ -7,7 +7,7 @@ import (
 )
 
 type ModelPool struct {
-	qwen    *semaphore.Weighted
+	gemini  *semaphore.Weighted
 	kimi    *semaphore.Weighted
 	minimax *semaphore.Weighted
 }
@@ -15,7 +15,7 @@ type ModelPool struct {
 // NewModelPool initialisiert die harten Limits aus Mandat 0.37
 func NewModelPool() *ModelPool {
 	return &ModelPool{
-		qwen:    semaphore.NewWeighted(1),  // MAX 1
+		gemini:  semaphore.NewWeighted(1),  // MAX 1
 		kimi:    semaphore.NewWeighted(1),  // MAX 1
 		minimax: semaphore.NewWeighted(10), // MAX 10
 	}
@@ -24,8 +24,8 @@ func NewModelPool() *ModelPool {
 // Acquire blockiert, bis das Modell frei ist.
 func (p *ModelPool) Acquire(ctx context.Context, modelName string) error {
 	switch modelName {
-	case "qwen-3.5":
-		return p.qwen.Acquire(ctx, 1)
+	case "google/antigravity-gemini-3.1-pro":
+		return p.gemini.Acquire(ctx, 1)
 	case "kimi-k2.5":
 		return p.kimi.Acquire(ctx, 1)
 	case "minimax-m2.5":
@@ -38,8 +38,8 @@ func (p *ModelPool) Acquire(ctx context.Context, modelName string) error {
 // Release gibt den Lock wieder frei. MUSS via defer aufgerufen werden!
 func (p *ModelPool) Release(modelName string) {
 	switch modelName {
-	case "qwen-3.5":
-		p.qwen.Release(1)
+	case "google/antigravity-gemini-3.1-pro":
+		p.gemini.Release(1)
 	case "kimi-k2.5":
 		p.kimi.Release(1)
 	case "minimax-m2.5":

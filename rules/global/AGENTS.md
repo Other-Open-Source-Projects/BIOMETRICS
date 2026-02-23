@@ -1,3 +1,12 @@
+SUPREME DELEGATION & PLANNING LOGIC (V12.0 - UNLIMITED MATRIX):
+ * Plan-Erstellung (Interview-Mode): -> @Prometheus (google/antigravity-gemini-3.1-pro) – Erstellt den Master-Plan basierend on 1M Kontext.
+ * Senior Architektur-Check: -> @Oracle (google/antigravity-claude-opus-4-6-thinking) – ZWINGEND: Das Senior-Gehirn grillt den Gemini-Plan auf logische Fehler (32k Thinking).
+ * Kontext-Lücken-Analyse: -> @Metis (google/antigravity-gemini-3.1-pro) – Findet verborgene Intentionen und fehlende Details.
+ * Finale Verifizierung: -> @Momus (google/antigravity-claude-sonnet-4-6) – Gibt den Plan erst frei, wenn alle Regeln zu 100% erfüllt sind.
+ * Haupt-Ausführung (Coding): -> @Sisyphus (google/antigravity-gemini-3.1-pro) – Arbeitet mit maximaler Intelligenz (Fallback: Qwen 3.5 nur bei Quota-Exceeded).
+ * Support-Agents: Docs -> @Librarian (google/antigravity-gemini-3-flash); Suche -> @Explore (google/antigravity-gemini-3-flash).
+ * Kreatives UI-Design -> @Artistry (google/antigravity-gemini-3.1-pro).
+
 # START: AGENTS.MD - CEO EXECUTIVE MANDATE (V20.0 - CONDENSED)
 
 **Version:** 20.0 "EXECUTIVE BRIEF"  

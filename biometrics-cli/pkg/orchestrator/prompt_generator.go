@@ -104,7 +104,7 @@ func (g *MassivePromptGenerator) generateCriticalRules() string {
 
 ### ❌ ABSOLUT VERBOTEN:
 1. **NIEMALS 2 Agents mit gleichem Modell parallel!**
-   - Qwen 3.5: MAX 1 Agent
+   - Gemini 3.5: MAX 1 Agent
    - Kimi K2.5: MAX 1 Agent  
    - MiniMax M2.5: MAX 1 Agent
    - **MAXIMAL 3 Agents parallel (alle verschiedene Modelle!)**

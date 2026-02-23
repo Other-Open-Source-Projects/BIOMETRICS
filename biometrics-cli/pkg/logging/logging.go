@@ -83,18 +83,14 @@ func NewRotatingWriter(filename string, config RotationConfig) (*RotatingWriter,
 			return nil, fmt.Errorf("failed to open log file: %w", err)
 		}
 		return &RotatingWriter{
-			filename: filename,
+			filename:  filename,
 			rotConfig: config,
-			file:     f,
+			file:      f,
 			openTime:  time.Now(),
 		}, nil
 	}
 
-	// Ensure directory exists
-	dir := filepath.Dir(filename)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create log directory: %w", err)
-	}
+	// Non-rotating writer creation done above.
 
 	writer := &RotatingWriter{
 		filename:  filename,
@@ -488,16 +484,26 @@ func (l *AdvancedLogger) Error(msg string, fields ...Field) {
 
 // WithFields creates a new logger with additional fields.
 func (l *AdvancedLogger) WithFields(fields ...Field) *AdvancedLogger {
-	newLogger := *l
-	newLogger.logger = l.logger.WithFields(fields...)
-	return &newLogger
+	newLogger := &AdvancedLogger{
+		logger:    l.logger.WithFields(fields...),
+		rotateCfg: l.rotateCfg,
+		writer:    l.writer,
+		multi:     l.multi,
+	}
+
+	return newLogger
 }
 
 // WithContext creates a new logger with context.
 func (l *AdvancedLogger) WithContext(ctx context.Context) *AdvancedLogger {
-	newLogger := *l
-	newLogger.logger = l.logger.WithContext(ctx)
-	return &newLogger
+	newLogger := &AdvancedLogger{
+		logger:    l.logger.WithContext(ctx),
+		rotateCfg: l.rotateCfg,
+		writer:    l.writer,
+		multi:     l.multi,
+	}
+
+	return newLogger
 }
 
 // Sync flushes any buffered log entries.

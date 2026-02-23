@@ -46,7 +46,7 @@ func Init() {
 	DefaultOrchestrator.agents = map[string]*AgentConfig{
 		"sisyphus": {
 			Name:          "sisyphus",
-			Model:         "qwen/qwen3.5-397b-a17b",
+			Model:         "google/antigravity-gemini-3.1-pro",
 			MaxConcurrent: 1,
 			Priority:      10,
 			Skills:        []string{"coding", "implementation"},
@@ -54,7 +54,7 @@ func Init() {
 		},
 		"prometheus": {
 			Name:          "prometheus",
-			Model:         "qwen/qwen3.5-397b-a17b",
+			Model:         "google/antigravity-gemini-3.1-pro",
 			MaxConcurrent: 1,
 			Priority:      9,
 			Skills:        []string{"planning", "architecture"},
@@ -62,7 +62,7 @@ func Init() {
 		},
 		"atlas": {
 			Name:          "atlas",
-			Model:         "google/gemini-3-flash-preview",
+			Model:         "google/antigravity-gemini-3-flash",
 			MaxConcurrent: 1,
 			Priority:      8,
 			Skills:        []string{"heavy-lifting", "execution"},

@@ -88,7 +88,7 @@ steps:
     type: agent
     agent:
       provider: nvidia-nim
-      model: qwen/qwen3.5-397b-a17b
+      model: google/antigravity-gemini-3.1-pro
       prompt: |
         Create architecture documentation with diagrams.
         Include: system context, containers, components, data flows
@@ -106,7 +106,7 @@ steps:
     type: agent
     agent:
       provider: nvidia-nim
-      model: qwen/qwen3.5-397b-a17b
+      model: google/antigravity-gemini-3.1-pro
       prompt: |
         Write comprehensive user guide in {{inputs.language}}.
         Include: getting started, tutorials, FAQs, troubleshooting

@@ -150,7 +150,7 @@ type Logger struct {
 	fields     map[string]interface{}
 	out        io.Writer
 	errOut     io.Writer
-	bufferPool sync.Pool
+	bufferPool *sync.Pool
 	callerSkip int
 }
 
@@ -237,7 +237,7 @@ func NewLogger(config *LoggerConfig) *Logger {
 		fields: make(map[string]interface{}),
 		out:    out,
 		errOut: errOut,
-		bufferPool: sync.Pool{
+		bufferPool: &sync.Pool{
 			New: func() interface{} {
 				return make([]byte, 0, 256)
 			},

@@ -3,100 +3,32 @@
     {
       "slug": "orchestrator",
       "name": "Enterprise Orchestrator",
-      "roleDefinition": "Du bist der Leitarchitekt und Controller. Du delegierst Tasks an Sub-Agenten und überwachst die CI/CD Pipeline.",
-      "customInstructions": "Lese deine absoluten Systemregeln zwingend aus: .opencode/instructions/orchestrator.md",
-      "model": "nvidia-nim/qwen-3.5-397b"
+      "roleDefinition": "Du bist der Leitarchitekt und Controller.",
+      "model": "google-api/gemini-3.1-pro-preview"
     },
     {
       "slug": "prometheus",
       "name": "Prometheus (Planner)",
-      "roleDefinition": "Du bist der strategische Planer. Du schreibst keinen produktiven Code, sondern erstellst UML-Diagramme, Architektur-Dokumente und API-Verträge (OpenAPI).",
-      "customInstructions": "Lese deine spezifischen Planungs-Regeln zwingend aus: .opencode/instructions/planner.md",
-      "model": "nvidia-nim/qwen-3.5-397b"
+      "roleDefinition": "Du bist der strategische Planer.",
+      "model": "google-api/gemini-3.1-pro-preview"
     },
     {
       "slug": "sisyphus",
       "name": "Sisyphus (Lead Worker)",
-      "roleDefinition": "Du bist der Senior Full-Stack Developer (Go & Next.js). Du setzt die geplanten Architektur-Vorgaben präzise in Code um.",
-      "customInstructions": "Lese deine spezifischen Coding- und CI/CD-Regeln zwingend aus: .opencode/instructions/worker-code.md",
-      "model": "nvidia-nim/qwen-3.5-397b"
+      "roleDefinition": "Du bist der Senior Full-Stack Developer.",
+      "model": "google-api/gemini-3.1-pro-preview"
     },
     {
-      "slug": "atlas",
-      "name": "Atlas (Data Worker)",
-      "roleDefinition": "Du bist der Datenbank- und Backend-Spezialist. Du bist zuständig für Supabase Migrationen und komplexe Go-Services.",
-      "customInstructions": "Lese deine spezifischen Coding-Regeln zwingend aus: .opencode/instructions/worker-code.md",
-      "model": "nvidia-nim/qwen-3.5-397b"
+      "slug": "oracle",
+      "name": "Oracle (Architect)",
+      "roleDefinition": "Du bist der Architektur-Berater.",
+      "model": "google/antigravity-claude-opus-4-6-thinking"
     },
     {
-      "slug": "explorer",
-      "name": "Explorer (Reviewer)",
-      "roleDefinition": "Du bist der Fehler-Analyst und Code-Reviewer. Du schreibst Tests und suchst nach Schwachstellen im Code.",
-      "customInstructions": "Lese deine spezifischen Coding-Regeln zwingend aus: .opencode/instructions/worker-code.md",
-      "model": "modal/zai-org/GLM-5-FP8"
-    },
-    {
-      "slug": "td-agent",
-      "name": "Technical Director (Media)",
-      "roleDefinition": "Du bist der Technical Director für Medienproduktion. Du nutzt Qwen 3.5 Thinking Mode, um NVIDIA NIM APIs (TRELLIS, Cosmos, FLUX) über Python zu orchestrieren.",
-      "customInstructions": "Lese dein Master-Regelwerk zwingend aus: media-pipeline/TD-AGENTS.md",
-      "model": "modal/zai-org/GLM-5-FP8"
-    },
-    {
-      "slug": "delqhi",
-      "name": "Delqhi (CEO)",
-      "roleDefinition": "Enterprise Orchestrator & CEO",
-      "customInstructions": "Lese deine absoluten Systemregeln zwingend aus: .opencode/instructions/orchestrator.md",
-      "model": "nvidia-nim/qwen-3.5-397b"
-    },
-    {
-      "slug": "frontend-ui-ux-engineer",
-      "name": "UI/UX Engineer",
-      "roleDefinition": "Frontend & Design Specialist",
-      "customInstructions": "Lese deine spezifischen Coding-Regeln zwingend aus: .opencode/instructions/worker-code.md",
-      "model": "modal/zai-org/GLM-5-FP8"
+      "slug": "momus",
+      "name": "Momus (Reviewer)",
+      "roleDefinition": "Du bist der schonungslose Kritiker.",
+      "model": "google/antigravity-claude-sonnet-4-6"
     }
-  ],
-  "custom_agents": {
-    "orchestrator": {
-      "name": "Enterprise Orchestrator",
-      "description": "Du bist der Leitarchitekt und Controller. Du delegierst Tasks an Sub-Agenten und überwachst die CI/CD Pipeline.",
-      "instruction": "Lese deine absoluten Systemregeln zwingend aus: .opencode/instructions/orchestrator.md"
-    },
-    "prometheus": {
-      "name": "Prometheus (Planner)",
-      "description": "Du bist der strategische Planer. Du schreibst keinen produktiven Code, sondern erstellst UML-Diagramme, Architektur-Dokumente und API-Verträge (OpenAPI).",
-      "instruction": "Lese deine spezifischen Planungs-Regeln zwingend aus: .opencode/instructions/planner.md"
-    },
-    "sisyphus": {
-      "name": "Sisyphus (Lead Worker)",
-      "description": "Du bist der Senior Full-Stack Developer (Go & Next.js). Du setzt die geplanten Architektur-Vorgaben präzise in Code um.",
-      "instruction": "Lese deine spezifischen Coding- und CI/CD-Regeln zwingend aus: .opencode/instructions/worker-code.md"
-    },
-    "atlas": {
-      "name": "Atlas (Data Worker)",
-      "description": "Du bist der Datenbank- und Backend-Spezialist. Du bist zuständig für Supabase Migrationen und komplexe Go-Services.",
-      "instruction": "Lese deine spezifischen Coding-Regeln zwingend aus: .opencode/instructions/worker-code.md"
-    },
-    "explorer": {
-      "name": "Explorer (Reviewer)",
-      "description": "Du bist der Fehler-Analyst und Code-Reviewer. Du schreibst Tests und suchst nach Schwachstellen im Code.",
-      "instruction": "Lese deine spezifischen Coding-Regeln zwingend aus: .opencode/instructions/worker-code.md"
-    },
-    "td-agent": {
-      "name": "Technical Director (Media)",
-      "description": "Du bist der Technical Director für Medienproduktion. Du nutzt Qwen 3.5 Thinking Mode, um NVIDIA NIM APIs (TRELLIS, Cosmos, FLUX) über Python zu orchestrieren.",
-      "instruction": "Lese dein Master-Regelwerk zwingend aus: media-pipeline/TD-AGENTS.md"
-    },
-    "delqhi": {
-      "name": "Delqhi (CEO)",
-      "description": "Enterprise Orchestrator & CEO",
-      "instruction": "Lese deine absoluten Systemregeln zwingend aus: .opencode/instructions/orchestrator.md"
-    },
-    "frontend-ui-ux-engineer": {
-      "name": "UI/UX Engineer",
-      "description": "Frontend & Design Specialist",
-      "instruction": "Lese deine spezifischen Coding-Regeln zwingend aus: .opencode/instructions/worker-code.md"
-    }
-  }
+  ]
 }

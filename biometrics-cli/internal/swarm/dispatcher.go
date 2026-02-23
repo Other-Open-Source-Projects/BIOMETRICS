@@ -40,8 +40,8 @@ func (d *Dispatcher) Dispatch(globalCtx context.Context, projID string, task *pr
 
 		d.logger.Info("Swarm Agent Dispatched", slog.String("project", projID), slog.String("task_id", task.ID), slog.String("trace_id", traceID))
 
-		// 2. Model Lock (Wir nutzen Qwen für Build-Tasks)
-		model := "qwen-3.5"
+		// 2. Model Lock (Wir nutzen Gemini für Build-Tasks)
+		model := "google/antigravity-gemini-3.1-pro"
 		if err := d.modelPool.Acquire(watchdogCtx, model); err != nil {
 			d.logger.Error("Failed to acquire model", slog.String("task_id", task.ID))
 			return

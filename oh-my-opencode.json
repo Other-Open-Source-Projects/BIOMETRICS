@@ -12,23 +12,7 @@
       "description": "Text-to-Image generation with FLUX.1-dev",
       "capabilities": ["text-to-image", "high-quality", "4K output"],
       "endpoint": "https://integrate.api.nvidia.com/v1/images/generations",
-      "timeout": 120000
-    },
-    "flux1-image-edit": {
-      "model": "nvidia/flux_1-kontext-dev",
-      "category": "artistry",
-      "description": "In-context image editing with FLUX.1-Kontext",
-      "capabilities": ["image-editing", "inpainting", "style-transfer"],
-      "endpoint": "https://integrate.api.nvidia.com/v1/images/edits",
-      "timeout": 120000
-    },
-    "stable-diffusion-35": {
-      "model": "nvidia/stable-diffusion-3_5-large",
-      "category": "artistry",
-      "description": "Stable Diffusion 3.5 Large for high-quality images",
-      "capabilities": ["text-to-image", "high-resolution", "photorealistic"],
-      "endpoint": "https://integrate.api.nvidia.com/v1/images/generations",
-      "timeout": 120000
+      "timeout": false
     },
     "cosmos-video-gen": {
       "model": "nvidia/cosmos-transfer1-7b",
@@ -36,15 +20,7 @@
       "description": "Text-to-Video generation with NVIDIA Cosmos",
       "capabilities": ["text-to-video", "4K", "30fps", "motion-synthesis"],
       "endpoint": "https://integrate.api.nvidia.com/v1/video/generations",
-      "timeout": 180000
-    },
-    "cosmos-video-edit": {
-      "model": "nvidia/cosmos-predict1-5b",
-      "category": "visual-engineering",
-      "description": "Video-to-Video editing with NVIDIA Cosmos Predict",
-      "capabilities": ["video-editing", "style-transfer", "enhancement"],
-      "endpoint": "https://integrate.api.nvidia.com/v1/video/edits",
-      "timeout": 180000
+      "timeout": false
     },
     "trellis-3d": {
       "model": "microsoft/trellis",
@@ -52,7 +28,7 @@
       "description": "Text/Image-to-3D with Microsoft TRELLIS",
       "capabilities": ["text-to-3d", "image-to-3d", "glb-export", "usd-export"],
       "endpoint": "https://integrate.api.nvidia.com/v1/3d/generations",
-      "timeout": 300000
+      "timeout": false
     },
     "magpie-voice": {
       "model": "nvidia/magpie-tts-multilingual",
@@ -60,23 +36,15 @@
       "description": "Multilingual Text-to-Speech with Magpie-TTS",
       "capabilities": ["text-to-speech", "multilingual", "voice-cloning"],
       "endpoint": "https://integrate.api.nvidia.com/v1/audio/speech",
-      "timeout": 60000
-    },
-    "studio-voice": {
-      "model": "nvidia/studiovoice",
-      "category": "artistry",
-      "description": "Studio-quality voice optimization",
-      "capabilities": ["audio-enhancement", "noise-reduction", "voice-clarity"],
-      "endpoint": "https://integrate.api.nvidia.com/v1/audio/enhance",
-      "timeout": 60000
+      "timeout": false
     },
     "qwen-vlm": {
-      "model": "qwen/qwen3.5-397b-a17b",
+      "model": "google/antigravity-gemini-3.1-pro",
       "category": "ultrabrain",
-      "description": "Qwen 3.5 397B Vision Language Model for quality checks",
+      "description": "Gemini 3.1 Pro Vision for supreme quality checks",
       "capabilities": ["vision", "quality-check", "multimodal", "reasoning"],
-      "endpoint": "https://integrate.api.nvidia.com/v1/chat/completions",
-      "timeout": 120000
+      "endpoint": "https://generativelanguage.googleapis.com/v1beta",
+      "timeout": false
     }
   },
   
@@ -113,7 +81,7 @@
     },
     "image": {
       "min_resolution": "1024x1024",
-      "vlm_check": true
+      "min_vlm_check": true
     },
     "audio": {
       "min_sample_rate": 44100,

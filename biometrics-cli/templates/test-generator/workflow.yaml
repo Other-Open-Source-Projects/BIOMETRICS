@@ -56,7 +56,7 @@ steps:
     type: agent
     agent:
       provider: nvidia-nim
-      model: qwen/qwen3.5-397b-a17b
+      model: google/antigravity-gemini-3.1-pro
       prompt: |
         Generate unit tests using {{inputs.test_framework}}.
         Cover: happy paths, edge cases, error handling
@@ -71,7 +71,7 @@ steps:
     type: agent
     agent:
       provider: nvidia-nim
-      model: qwen/qwen3.5-397b-a17b
+      model: google/antigravity-gemini-3.1-pro
       prompt: |
         Generate integration tests for component interactions
       tools:

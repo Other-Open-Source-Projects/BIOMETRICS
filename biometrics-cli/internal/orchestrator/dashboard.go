@@ -14,7 +14,7 @@ func DisplayDashboard() {
 		fmt.Println("==============================================================")
 		fmt.Printf("STATUS:     RUNNING (24/7 MODE)\n")
 		fmt.Printf("METRICS:    :59002/metrics\n")
-		
+
 		chaosStatus := "DISABLED"
 		if state.GlobalState.ChaosEnabled {
 			chaosStatus = "ACTIVE (CHAOS MONKEY)"

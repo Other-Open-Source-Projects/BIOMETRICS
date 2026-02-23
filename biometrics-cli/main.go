@@ -54,16 +54,16 @@ type Step struct {
 
 // Model for bubbletea
 type Model struct {
-	steps       []Step
-	current     int
-	quitting    bool
-	done        bool
-	spinner     spinner.Model
-	width       int
-	height      int
-	config      Config
-	showMenu    bool
-	menuCursor  int
+	steps      []Step
+	current    int
+	quitting   bool
+	done       bool
+	spinner    spinner.Model
+	width      int
+	height     int
+	config     Config
+	showMenu   bool
+	menuCursor int
 }
 
 // Config holds user configuration
@@ -407,44 +407,44 @@ func installSerenaMCP() tea.Msg {
 	// Install Serena MCP for OpenCode
 	fmt.Println("\n🔧 Installing Serena MCP for OpenCode...")
 	runCommand("opencode", "mcp", "add", "serena")
-	
+
 	// Install Serena skill for OpenClaw
 	fmt.Println("🔧 Installing Serena skill for OpenClaw...")
 	runCommand("openclaw", "skills", "install", "openclaw/skills--serena")
-	
+
 	return statusMsg{Index: 10, Status: "success", Message: "Serena MCP installed"}
 }
 
 func configureWhatsApp() tea.Msg {
 	fmt.Println("\n📱 WhatsApp QR Code Pairing")
 	fmt.Println("OpenClaw will now show a QR code...")
-	fmt.Println("Scan it with your WhatsApp app to connect.\n")
-	
+	fmt.Println("Scan it with your WhatsApp app to connect.")
+
 	cmd := exec.Command("openclaw", "channels", "login", "--channel", "whatsapp")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
-	
+
 	if err := cmd.Run(); err != nil {
 		return statusMsg{Index: 11, Status: "error", Message: err.Error()}
 	}
-	
+
 	return statusMsg{Index: 11, Status: "success", Message: "WhatsApp connected"}
 }
 
 func configureTelegram() tea.Msg {
 	fmt.Println("\n📱 Telegram Bot Setup")
-	fmt.Println("Follow the instructions to create your bot...\n")
-	
+	fmt.Println("Follow the instructions to create your bot...")
+
 	cmd := exec.Command("openclaw", "channels", "login", "--channel", "telegram")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
-	
+
 	if err := cmd.Run(); err != nil {
 		return statusMsg{Index: 12, Status: "error", Message: err.Error()}
 	}
-	
+
 	return statusMsg{Index: 12, Status: "success", Message: "Telegram connected"}
 }
 
@@ -454,11 +454,11 @@ func installSkills() tea.Msg {
 		"openclaw/skills--github",
 		"openclaw/skills--gitlab",
 	}
-	
+
 	for _, skill := range skills {
 		runCommand("openclaw", "skills", "install", skill)
 	}
-	
+
 	return statusMsg{Index: 13, Status: "success", Message: "skills installed"}
 }
 

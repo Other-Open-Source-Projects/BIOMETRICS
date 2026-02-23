@@ -39,7 +39,7 @@ func (e *ConditionExecutor) Execute(ctx context.Context, step *Step, inputs map[
 
 	result := map[string]any{
 		"condition": step.Condition.Expression,
-		"evaluated":  true,
+		"evaluated": true,
 	}
 
 	return result, nil

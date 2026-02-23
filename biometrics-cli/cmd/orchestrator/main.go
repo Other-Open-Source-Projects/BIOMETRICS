@@ -71,8 +71,8 @@ func main() {
 			continue
 		}
 
-		// 3.4 Model Lock holen (Standardmäßig qwen-3.5 für Hauptaufgaben)
-		model := "qwen-3.5"
+		// 3.4 Model Lock holen (Standardmäßig gemini-3.1-pro für Hauptaufgaben)
+		model := "google/antigravity-gemini-3.1-pro"
 		if err := modelPool.Acquire(cycleCtx, model); err != nil {
 			telemetry.LogWithTrace(cycleCtx, logger, slog.LevelWarn, "Failed to acquire model lock", slog.String("model", model))
 			time.Sleep(5 * time.Second)

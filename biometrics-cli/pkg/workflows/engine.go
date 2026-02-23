@@ -15,11 +15,11 @@ type Workflow struct {
 	Version     string            `yaml:"version" json:"version"`
 	Description string            `yaml:"description" json:"description"`
 	Trigger     TriggerConfig     `yaml:"trigger" json:"trigger"`
-	Steps       []Step           `yaml:"steps" json:"steps"`
-	Inputs      map[string]Field `yaml:"inputs" json:"inputs"`
-	Outputs     map[string]Field `yaml:"outputs" json:"outputs"`
+	Steps       []Step            `yaml:"steps" json:"steps"`
+	Inputs      map[string]Field  `yaml:"inputs" json:"inputs"`
+	Outputs     map[string]Field  `yaml:"outputs" json:"outputs"`
 	Env         map[string]string `yaml:"env" json:"env"`
-	Options     WorkflowOptions  `yaml:"options" json:"options"`
+	Options     WorkflowOptions   `yaml:"options" json:"options"`
 }
 
 // TriggerConfig defines how a workflow is triggered
@@ -32,11 +32,11 @@ type TriggerConfig struct {
 
 // Step represents a single workflow step
 type Step struct {
-	ID        string            `yaml:"id" json:"id"`
-	Name      string            `yaml:"name" json:"name"`
-	Type      string            `yaml:"type" json:"type"`
-	Agent     AgentConfig       `yaml:"agent,omitempty" json:"agent,omitempty"`
-	Condition *ConditionConfig  `yaml:"condition,omitempty" json:"condition,omitempty"`
+	ID        string           `yaml:"id" json:"id"`
+	Name      string           `yaml:"name" json:"name"`
+	Type      string           `yaml:"type" json:"type"`
+	Agent     AgentConfig      `yaml:"agent,omitempty" json:"agent,omitempty"`
+	Condition *ConditionConfig `yaml:"condition,omitempty" json:"condition,omitempty"`
 	Parallel  *ParallelConfig  `yaml:"parallel,omitempty" json:"parallel,omitempty"`
 	Loop      *LoopConfig      `yaml:"loop,omitempty" json:"loop,omitempty"`
 	Transform *TransformConfig `yaml:"transform,omitempty" json:"transform,omitempty"`
@@ -51,7 +51,7 @@ type AgentConfig struct {
 	Provider  string            `yaml:"provider" json:"provider"`
 	Model     string            `yaml:"model" json:"model"`
 	Prompt    string            `yaml:"prompt" json:"prompt"`
-	Tools     []string         `yaml:"tools" json:"tools"`
+	Tools     []string          `yaml:"tools" json:"tools"`
 	Variables map[string]string `yaml:"variables" json:"variables"`
 }
 

@@ -1,143 +1,25 @@
 {
   "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json",
-  "google_auth": false,
-  "sisyphus_agent": {
-    "disabled": false,
-    "planner_enabled": true,
-    "replace_plan": true
-  },
-  "agents": {
-    "Delqhi": {
-      "model": "nvidia-nim/qwen3.5-397b-a17b",
-      "category": "general",
-      "fallback": ["opencode/glm-5-free"]
-    },
+  "agent": {
     "sisyphus": {
-      "model": "nvidia-nim/qwen3.5-397b-a17b",
-      "category": "general",
-      "fallback": ["opencode/glm-5-free"]
+      "model": "google-api/gemini-3.1-pro-preview",
+      "fallback": ["google-api/gemini-3-pro-preview", "google-api/gemini-3-flash-preview", "nvidia-nim/qwen3.5-397b-a17b"]
     },
     "sisyphus-junior": {
-      "model": "opencode/glm-5-free",
-      "category": "quick",
-      "fallback": []
+      "model": "google-api/gemini-3-flash-preview",
+      "fallback": ["google-api/gemini-3-pro-preview", "opencode/glm-5-free"]
     },
     "prometheus": {
-      "model": "google/gemini-3.1-pro-preview",
-      "category": "ultrabrain",
-      "fallback": ["opencode/glm-5-free"]
-    },
-    "metis": {
-      "model": "google/gemini-3-pro-preview",
-      "category": "ultrabrain",
-      "fallback": ["google/gemini-3-flash-preview"]
-    },
-    "momus": {
-      "model": "opencode/glm-5-free",
-      "category": "ultrabrain",
-      "fallback": ["opencode-zen/minimax-m2.5-free"]
+      "model": "google-api/gemini-3.1-pro-preview",
+      "fallback": ["google-api/gemini-3-pro-preview", "google-api/gemini-3-flash-preview", "opencode/glm-5-free"]
     },
     "oracle": {
-      "model": "google/gemini-3.1-pro-preview",
-      "category": "ultrabrain",
-      "fallback": ["opencode/glm-5-free"]
+      "model": "google/antigravity-claude-opus-4-6-thinking",
+      "fallback": ["google-api/gemini-3.1-pro-preview", "google-api/gemini-3-pro-preview"]
     },
-    "librarian": {
-      "model": "opencode-zen/minimax-m2.5-free",
-      "category": "general",
-      "fallback": []
-    },
-    "explore": {
-      "model": "google/gemini-3-flash-preview",
-      "category": "quick",
-      "fallback": ["nvidia-nim/qwen3.5-397b-a17b"]
-    },
-    "frontend-ui-ux-engineer": {
-      "model": "opencode-zen/minimax-m2.5-free",
-      "category": "visual-engineering",
-      "fallback": []
-    },
-    "document-writer": {
-      "model": "opencode-zen/minimax-m2.5-free",
-      "category": "writing",
-      "fallback": []
-    },
-    "multimodal-looker": {
-      "model": "google/gemini-3-pro-preview",
-      "category": "general",
-      "fallback": ["google/gemini-3-flash-preview"]
-    },
-    "atlas": {
-      "model": "opencode/glm-5-free",
-      "category": "general",
-      "fallback": ["opencode-zen/minimax-m2.5-free"]
-    },
-    "build": {
-      "model": "nvidia-nim/qwen3.5-397b-a17b",
-      "category": "build",
-      "fallback": ["opencode/glm-5-free"]
-    },
-    "plan": {
-      "model": "google/gemini-3.1-pro-preview",
-      "category": "plan",
-      "fallback": ["opencode/glm-5-free"]
+    "metis": {
+      "model": "google-api/gemini-3.1-pro-preview",
+      "fallback": ["google-api/gemini-3-pro-preview", "google-api/gemini-3-flash-preview"]
     }
-  },
-  "categories": {
-    "visual-engineering": {
-      "model": "opencode-zen/minimax-m2.5-free",
-      "temperature": 1
-    },
-    "ultrabrain": {
-      "model": "google/gemini-3.1-pro-preview",
-      "temperature": 0.9,
-      "thinking": {"type": "enabled", "budgetTokens": 32768}
-    },
-    "quick": {
-      "model": "google/gemini-3-flash-preview",
-      "temperature": 0.5
-    },
-    "writing": {
-      "model": "opencode-zen/minimax-m2.5-free",
-      "temperature": 0.7
-    },
-    "general": {
-      "model": "nvidia-nim/qwen3.5-397b-a17b",
-      "temperature": 0.5
-    },
-    "build": {
-      "model": "nvidia-nim/qwen3.5-397b-a17b",
-      "temperature": 0.7,
-      "thinking": {"type": "enabled", "budgetTokens": 16384}
-    },
-    "plan": {
-      "model": "google/gemini-3.1-pro-preview",
-      "temperature": 0.8,
-      "thinking": {"type": "enabled", "budgetTokens": 16384}
-    },
-    "artistry": {
-      "model": "google/gemini-3-pro-preview",
-      "temperature": 1.0
-    }
-  },
-  "claude_code": {
-    "mcp": true,
-    "commands": true,
-    "skills": true,
-    "agents": true,
-    "hooks": true,
-    "plugins": true
-  },
-  "experimental": {
-    "preemptive_compaction": true,
-    "preemptive_compaction_threshold": 0.85,
-    "dynamic_context_pruning": {
-      "enabled": true,
-      "notification": "detailed"
-    }
-  },
-  "git_master": {
-    "commit_footer": true,
-    "include_co_authored_by": true
   }
 }

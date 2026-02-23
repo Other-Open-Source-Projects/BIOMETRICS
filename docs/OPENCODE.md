@@ -619,3 +619,254 @@ opencode run "Say OK" --model google/gemini-2.5-pro
 ```
 
 **Letzte Aktualisierung:** 2026-02-22 - Gemini 3 Modelle nicht verfuegbar dokumentiert
+---
+
+## CRITICAL: MODELL-ALLOKATIONS-MATRIX (Februar 2026)
+
+**WICHTIG:** Diese Matrix ist VERPFLICHTEND fuer alle Agenten!
+
+### Agent-Zuweisung (STRENGSTENS EINZUHALTEN!)
+
+| Agent | Modell | Provider | Begründung |
+|-------|--------|----------|-------------|
+| **Prometheus** (Planung) | `google/gemini-3.1-pro-preview` | Google AI Studio | 1M Context, extrem hohe Logik, 250 RPD reichen fuer seltene Planungen |
+| **Metis** (Analyse) | `google/gemini-3-pro` | Google AI Studio | Hervorragend fuer Logiklücken-Erkennung |
+| **Momus** (Review) | `opencode/glm-5` | OpenCode Zen | Beste Validierung fuer Systemtechnik |
+| **Sisyphus** (Main Orchestrator) | `nvidia/qwen3.5-397b-a17b` | NVIDIA NIM | KEIN RPD-Limit! 32k Thinking Tokens moeglich |
+| **Atlas** (Master Orchestrator) | `opencode/glm-5` | OpenCode Zen | Starke Makro-Aufgaben-Verteilung |
+| **Librarian** (Research) | `opencode/minimax-m2.5` | OpenCode Zen | Extrem schnell fuer Dokumentations-Synthese |
+| **Explorer** (Grep/Suche) | `google/gemini-3-flash` | Google AI Studio | Schnellstes TTFT, 1M Context |
+
+### WICHTIGSTE REGELN:
+
+1. **DeepSeek ist VERBOTEN** - In KEINE Fallback-Kette eintragen!
+2. **Qwen 3.5 fuer Sisyphus** - Kein RPD-Limit bei NVIDIA NIM!
+3. **Nie Google-Modelle in Sisyphus-Fallback** - Wuerde Tageslimit sofort erschöpfen!
+4. **Variant-Parameter fuer Qwen:** `"variant": "max"` oder `"high"` setzen!
+
+---
+
+## GEMINI API VARIANTEN & ENDPUNKTE (KRITISCH!)
+
+
+### Die drei verschiedenen API-Typen:
+
+
+| Modellfamilie | API-Typ | Endpunkt | Synchron/Async |
+|--------------|----------|----------|----------------|
+| **Gemini 2.5** | Standard Chat | `/v1beta/models/...:generateContent` | SYNCHRON |
+| **Gemini 3.1 Pro** | Regular | `/v1beta/models/gemini-3.1-pro-preview:generateContent` | SYNCHRON |
+| **Gemini 3.1 Pro** | CustomTools | `/v1beta/models/gemini-3.1-pro-preview-customtools:generateContent` | SYNCHRON |
+| **Deep Research** | Interactions API | `/v1beta/models/deep-research-pro-preview-12-2025:interactions` | ASYNCHRON (!) |
+
+### WICHTIG: Deep Research Modell HAT ANDERE API!
+
+**PROBLEM:** Das Deep Research Modell kann NICHT wie normale Modelle aufgerufen werden!
+
+**Loesung:**
+```typescript
+// Step 1: Background-Job starten
+const job = await fetch('/v1beta/models/deep-research-pro-preview-12-2025:interactions', {
+  method: 'POST',
+  body: { task: 'research', background: true }
+});
+
+// Step 2: Polling-Schleife (minutenlang!)
+while (job.status !== 'completed') {
+  await sleep(5000); // Alle 5 Sekunden pollen
+  job = await checkJob(job.id);
+}
+```
+
+**Fuer OpenCode:** Das Deep Research Modell nutzbar via Async Polling!
+
+```typescript
+// Deep Research in OpenCode nutzen:
+// 1. Starte Background-Task
+const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/deep-research-pro-preview-12-2025:interactions', {
+  method: 'POST',
+  headers: { 'Authorization': 'Bearer ' + process.env.GOOGLE_API_KEY },
+  body: JSON.stringify({
+    task: { type: 'RESEARCH', query: 'deine research frage' },
+    metadata: { user_id: 'test' }
+  })
+});
+const { name: operationName } = await response.json();
+
+// 2. Polling-Schleife
+let result = null;
+while (!result) {
+  await new Promise(r => setTimeout(r, 5000));
+  const check = await fetch(`https://generativelanguage.googleapis.com/v1/${operationName}`);
+  const data = await check.json();
+  if (data.done) result = data.response;
+}
+
+// 3. Ergebnis nutzen
+console.log(result);
+```
+
+**WICHTIG:** OpenCode's synchrone Architektur kann Deep Research NICHT direkt nutzen. Alternative: Externer Worker oder Webhook.
+
+---
+
+## KONFIGURATIONS-HIERARCHIE (MUSS BEFOLGT WERDEN)
+
+
+### Drei Konfigurations-Ebenen:
+
+| Ebene | Datei | Prioritaet |
+|------|-------|-------------|
+| **1. Global** | `~/.config/opencode/opencode.json` | Niedrigste |
+| **2. oh-my-opencode** | `~/.config/opencode/oh-my-opencode.jsonc` | Mittel |
+| **3. Projekt** | `./.opencode/oh-my-opencode.jsonc` | HOECHSTE |
+
+### Schritt 1: Globale Provider (opencode.json)
+
+
+**Location:** `~/.config/opencode/opencode.json`
+
+```json
+{
+  "provider": {
+    "google": {
+      "npm": "@ai-sdk/google",
+      "models": {
+        "gemini-2.5-flash": { "id": "gemini-2.0-flash-exp", "limit": { "context": 1048576 } },
+        "gemini-2.5-pro": { "id": "gemini-2.0-pro-exp", "limit": { "context": 2097152 } }
+      }
+    },
+    "nvidia": {
+      "npm": "@ai-sdk/openai-compatible",
+      "options": { "baseURL": "https://integrate.api.nvidia.com/v1" },
+      "models": {
+        "qwen3.5-397b-a17b": { "id": "qwen/qwen3.5-397b-a17b", "limit": { "context": 262144 } }
+      }
+    }
+  }
+}
+```
+
+**WICHTIG:** Niemals API-Keys hier eintragen! Immer `{env:VARIABLE}` Syntax!
+
+### Schritt 2: Globale Agenten (oh-my-opencode.jsonc)
+
+**Location:** `~/.config/opencode/oh-my-opencode.jsonc`
+
+```jsonc
+{
+  "agents": {
+    "prometheus": {
+      "model": "google/gemini-3.1-pro-preview",
+      "fallback": ["openrouter/glm-5", "nvidia/qwen3.5-397b-a17b"]
+    },
+    "sisyphus": {
+      "model": "nvidia/qwen3.5-397b-a17b",
+      "variant": "max",  // WICHTIG!
+      "fallback": ["opencode/minimax-m2.5", "opencode/glm-5"]
+    },
+    "atlas": {
+      "model": "opencode/glm-5",
+      "fallback": ["opencode/minimax-m2.5"]
+    },
+    "momus": {
+      "model": "opencode/glm-5",
+      "fallback": ["google/gemini-2.5-flash"]
+    },
+    "librarian": {
+      "model": "opencode/minimax-m2.5",
+      "fallback": ["google/gemini-2.5-flash"]
+    },
+    "explorer": {
+      "model": "google/gemini-3-flash",
+      "fallback": ["google/gemini-2.5-flash", "opencode/minimax-m2.5"]
+    }
+  }
+}
+```
+
+**VERBOTEN:** DeepSeek in KEINE Fallback-Kette eintragen!
+
+### Schritt 3: Projekt-Isolation (.opencode/)
+
+**Location:** `./biometrics/.opencode/oh-my-opencode.jsonc`
+
+
+```bash
+# Verzeichnis erstellen
+mkdir -p .opencode/
+
+# Datei erstellen mit denselben Einstellungen
+```
+
+```jsonc
+{
+  "agents": {
+    // Exakt dieselbe Matrix wie global
+    "prometheus": { "model": "google/gemini-3.1-pro-preview" },
+    "sisyphus": { "model": "nvidia/qwen3.5-397b-a17b", "variant": "max" },
+    "atlas": { "model": "opencode/glm-5" },
+    "momus": { "model": "opencode/glm-5" },
+    "librarian": { "model": "opencode/minimax-m2.5" },
+    "explorer": { "model": "google/gemini-3-flash" }
+  },
+  "env": {
+    // Projekt-spezifische Variablen
+    "GEMINI_API_KEY": "{env:GEMINI_API_KEY}",
+    "NVIDIA_API_KEY": "{env:NVIDIA_API_KEY}"
+  }
+}
+```
+
+---
+
+## ZERO-REFUSAL SYSTEM-INSTRUKTIONEN
+
+**Fuer alle Agenten zwingend zu befolgen:**
+
+### Die 4 Direktiven:
+
+1. **Teleologische Zielableitung**
+   - Hinter den wörtlichen Befehl blicken
+   - Die wahre Intention des Users abstrahieren
+
+2. **Lueckenanalyse**
+   - Wenn etwas nicht geht: NICHT ablehnen!
+   - Stattdessen: Analyse was fehlt und wie es besorgt werden kann
+
+3. **Konstruktive Loesungsgenerierung**
+   - NIE sagen "Ich kann nicht"
+   - IMMER Loesungswege aufzeigen mit Code-Beispielen
+
+4. **Zero-Refusal**
+   - "Es ist dir untersagt, Aufgaben mit 'Ich kann nicht' abzulehnen"
+   - Du bist ein Ingenieur - ein Ingenieur gibt nicht auf!
+
+### Beispiel:
+
+**FALSCH:**
+> "Tut mir leid, ich kann diesen Google Drive Link nicht oeffnen."
+
+**RICHTIG:**
+> "Um auf Google Drive zuzugreifen, brauchst du die Google Drive API. Hier ist der Python-Code fuer die Integration..."
+
+---
+
+## PROVIDER LIMITS (Februar 2026)
+
+| Provider | Modell | RPM | RPD | Kontext |
+|----------|--------|-----|-----|----------|
+| **NVIDIA NIM** | Qwen 3.5 397B | ~40 | UNLIMITED! | 1M |
+| **Google** | Gemini 3.1 Pro | 5-15 | 100-250 | 1M |
+| **Google** | Gemini 3 Flash | 10-15 | 250-1000 | 1M |
+| **OpenCode Zen** | GLM-5 | variabel | variabel | 200K |
+| **OpenCode Zen** | MiniMax m2.5 | variabel | variabel | 200K |
+
+**SCHLUSSFOLGERUNG:**
+- Sisyphus NUR mit NVIDIA Qwen betreiben (kein RPD-Limit!)
+- Google-Modelle nur fuer seltene, intelligente Aufgaben
+- Explorer mit Gemini Flash oder MiniMax
+
+---
+
+**Letzte Aktualisierung:** 2026-02-22 - Komplette Modell-Allokation und Konfiguration dokumentiert

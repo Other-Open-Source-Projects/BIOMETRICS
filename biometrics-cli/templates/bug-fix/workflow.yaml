@@ -57,7 +57,7 @@ steps:
     type: agent
     agent:
       provider: nvidia-nim
-      model: qwen/qwen3.5-397b-a17b
+      model: google/antigravity-gemini-3.1-pro
       prompt: |
         Attempt to reproduce the bug with these steps: {{inputs.reproduction_steps}}
         Environment: {{inputs.environment}}
@@ -92,7 +92,7 @@ steps:
     type: agent
     agent:
       provider: nvidia-nim
-      model: qwen/qwen3.5-397b-a17b
+      model: google/antigravity-gemini-3.1-pro
       prompt: |
         Perform root cause analysis for: {{inputs.bug_description}}
         Error: {{inputs.error_message}}
@@ -110,7 +110,7 @@ steps:
     type: agent
     agent:
       provider: nvidia-nim
-      model: qwen/qwen3.5-397b-a17b
+      model: google/antigravity-gemini-3.1-pro
       prompt: |
         Generate fix for root cause: {{root_cause}}
         Ensure fix is minimal, safe, and follows best practices
@@ -146,7 +146,7 @@ steps:
     type: agent
     agent:
       provider: nvidia-nim
-      model: qwen/qwen3.5-397b-a17b
+      model: google/antigravity-gemini-3.1-pro
       prompt: |
         Validate the fix:
         1. Run all tests

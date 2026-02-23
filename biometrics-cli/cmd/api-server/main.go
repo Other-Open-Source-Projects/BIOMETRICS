@@ -302,7 +302,7 @@ func handleConfig(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"provider":     "nvidia-nim",
-		"model":        "qwen-3.5-397b",
+		"model":        "google/antigravity-gemini-3.1-pro",
 		"auto_healing": true,
 		"scheduler":    true,
 	})

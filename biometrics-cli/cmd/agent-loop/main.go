@@ -41,11 +41,11 @@ func runSicherCheck(agent string) {
 func getModelForAgent(agent string) string {
 	switch agent {
 	case "sisyphus", "build", "atlas", "deep", "oracle", "ultrabrain", "visual-engineering":
-		return "qwen3.5"
+		return "google/antigravity-gemini-3.1-pro"
 	case "librarian", "explore", "quick", "metis", "momus":
 		return "minimax"
 	default:
-		return "qwen3.5"
+		return "google/antigravity-gemini-3.1-pro"
 	}
 }
 

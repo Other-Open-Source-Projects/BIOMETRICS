@@ -1,56 +1,40 @@
-# NEVER ALTER SPECIFIED AI MODELS
+# MODEL PRESERVATION RULES V12.0 (UNLIMITED HYBRID MATRIX)
 
 **CRITICAL RULE - PERMANENT ENFORCEMENT**
 
-The user has explicitly mandated the use of specific Google Gemini preview models, GLM-5, MiniMax, and Qwen models.
+The system is now optimized for the **Hybrid-Hybrid Architecture (V12.0)** to eliminate all quota lockouts.
 
-## ABSOLUTE PROHIBITIONS
+## 🛡️ THE STRATEGY: API-KEY PRIMARY / ANTIGRAVITY CLAUDE
 
-1. **DO NOT run `opencode run -m` tests to verify if these models work.**
-   - Assume they are 100% functional and correctly configured.
+To bypass the 130-hour weekly lockout, we utilize separate quota pools:
 
-2. **If an API call to a Gemini model fails with:**
-   - "not found"
-   - "generateContent error"
-   - Rate limits
-   - Timeout
-   
-   **DO NOT remove the model from opencode.json or oh-my-opencode.json.**
+1. **Gemini Models (Primary & Fallback)**:
+   - Always use the standalone `GOOGLE_API_KEY` (Provider: `google-api`).
+   - This pool is independent and offers higher RPM/TPM.
+   - Sequence: Gemini 3.1 Pro -> Gemini 3 Pro -> Gemini 3 Flash.
 
-3. **The exact provider strings are ABSOLUTE and IMMUTABLE:**
-   - `google/gemini-3.1-pro-preview` (MIT -preview!)
-   - `google/gemini-3-pro-preview` (MIT -preview!)
-   - `google/gemini-3-flash-preview` (MIT -preview!)
-   - `nvidia-nim/qwen3.5-397b-a17b`
-   - `opencode/glm-5-free` (NICHT modal/glm-5-fp8!)
-   - `opencode-zen/minimax-m2.5-free`
+2. **Claude Models (Architecture Only)**:
+   - Reserved for Oracle and Momus via Antigravity Plugin (Provider: `google`).
+   - Suffix mapping: `claude-3-opus@20240229` and `claude-3-5-sonnet-v2@20241022`.
 
-4. **Missing the -preview suffix is a user/prompt error, NOT a config error.**
+## 🤖 THE EXACT MODEL ALLOCATION MATRIX (V12.0)
 
-5. **NEVER fallback to replacing the configuration with older models.**
+| Agent | Primary (API-Key) | Fallback 1 (API-Key) | Fallback 2 (Safety) |
+|-------|-------------------|----------------------|----------------------|
+| **Sisyphus** | `google-api/gemini-3.1-pro-preview` | `google-api/gemini-3-pro-preview` | `nvidia-nim/qwen3.5-397b-a17b` |
+| **Prometheus** | `google-api/gemini-3.1-pro-preview` | `google-api/gemini-3-flash-preview` | `opencode/glm-5-free` |
+| **Oracle** | `google/antigravity-claude-opus-4-6-thinking` | `google-api/gemini-3.1-pro-preview` | `nvidia-nim/qwen3.5-397b-a17b` |
+| **Momus** | `google/antigravity-claude-sonnet-4-6` | `google-api/gemini-3-flash-preview` | `opencode/glm-5-free` |
+| **Atlas** | `google-api/gemini-3.1-pro-preview-customtools` | `google-api/gemini-3-flash-preview` | `nvidia-nim/qwen3.5-397b-a17b` |
+| **Sisyphus-Jr** | `google-api/gemini-3-flash-preview` | `google-api/gemini-3-pro-preview` | `opencode/glm-5-free` |
 
-6. **DeepSeek and Deep Research are strictly banned from agent execution loops.**
-   - DeepSeek: API-Instabilitäten
-   - Deep Research: 1 RPM Limit - VERBOTEN!
+## 🚫 ABSOLUTE PROHIBITIONS
 
-## THE EXACT MODEL ALLOCATION MATRIX
-
-| Agent | Model | Notes |
-|-------|-------|-------|
-| Prometheus | `google/gemini-3.1-pro-preview` | Strategische Planung |
-| Metis | `google/gemini-3-pro-preview` | Analyse & Lücken |
-| Momus | `opencode/glm-5-free` | Review |
-| Sisyphus | `nvidia-nim/qwen3.5-397b-a17b` | Main Orchestrator, variant: "max" |
-| Atlas | `opencode/glm-5-free` | Master Orchestrator |
-| Librarian | `opencode-zen/minimax-m2.5-free` | Research/Docs |
-| Explore | `google/gemini-3-flash-preview` | Fast Grep |
-| Oracle | `google/gemini-3.1-pro-preview` | Spezial-Agent Debugging |
-| Artistry (Kategorie) | `google/gemini-3-pro-preview` | Unkonventionelle Ansätze |
-| sisyphus-junior | `opencode/glm-5-free` | Quick Tasks |
-
-## VIOLATION = TECHNICAL TREASON
+1. **NO DATE SUFFIXES**: Never add suffixes like `-05120` to Gemini IDs.
+2. **NO TIMEOUTS**: Timeouts in any configuration file are strictly forbidden.
+3. **NO REMOVAL**: Never remove models from config due to 403/429 errors.
+4. **NO PLURAL**: The JSON key is `"command"`, NOT `"commands"`.
 
 ---
-
-**Created:** 2026-02-22
-**Status:** PERMANENT - CANNOT BE OVERRIDDEN
+**Version:** 12.0
+**Status:** ACTIVE - PERMANENT ENFORCEMENT

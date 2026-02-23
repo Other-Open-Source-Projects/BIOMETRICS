@@ -114,10 +114,10 @@ func NewModelTracker() *ModelTracker {
 
 func (mt *ModelTracker) initDefaultModels() {
 	defaultModels := []string{
-		"qwen/qwen3.5-397b-a17b",
+		"google/antigravity-gemini-3.1-pro",
 		"opencode/kimi-k2.5-free",
 		"opencode/minimax-m2.5-free",
-		"google/gemini-3-flash-preview",
+		"google/antigravity-gemini-3-flash",
 	}
 
 	for _, model := range defaultModels {

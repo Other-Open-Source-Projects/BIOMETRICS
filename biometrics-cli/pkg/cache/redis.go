@@ -190,6 +190,6 @@ func (c *RedisCache) GetClient() *redis.Client {
 	return c.client
 }
 
-func (c *RedisCache) GetMetrics() CacheMetrics {
-	return *c.metrics
+func (c *RedisCache) GetMetrics() *CacheMetrics {
+	return c.metrics
 }

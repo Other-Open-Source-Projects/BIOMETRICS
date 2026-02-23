@@ -55,7 +55,7 @@ steps:
     type: agent
     agent:
       provider: nvidia-nim
-      model: qwen/qwen3.5-397b-a17b
+      model: google/antigravity-gemini-3.1-pro
       prompt: |
         Analyze the code changes in {{inputs.repository}} branch {{inputs.branch}}.
         Focus on: {{inputs.focus_areas}}
@@ -74,7 +74,7 @@ steps:
     type: agent
     agent:
       provider: nvidia-nim
-      model: qwen/qwen3.5-397b-a17b
+      model: google/antigravity-gemini-3.1-pro
       prompt: |
         Perform security scan on the code changes.
         Check for: SQL injection, XSS, CSRF, authentication issues, secret leaks
@@ -90,7 +90,7 @@ steps:
     type: agent
     agent:
       provider: nvidia-nim
-      model: qwen/qwen3.5-397b-a17b
+      model: google/antigravity-gemini-3.1-pro
       prompt: |
         Review code for performance issues.
         Identify: N+1 queries, inefficient algorithms, memory leaks, bottlenecks

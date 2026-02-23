@@ -24,7 +24,7 @@ echo ""
 
 # Get metrics
 CYCLES=$(curl -s http://localhost:59002/metrics | grep "^biometrics_orchestrator_cycles_total " | awk '{print $2}')
-MODEL_ACQ=$(curl -s http://localhost:59002/metrics | grep "^biometrics_orchestrator_model_acquisitions_total{model=\"qwen3.5\"}" | awk '{print $2}')
+MODEL_ACQ=$(curl -s http://localhost:59002/metrics | grep "^biometrics_orchestrator_model_acquisitions_total{model=\"gemini-3.1-pro\"}" | awk '{print $2}')
 GOROUTINES=$(curl -s http://localhost:59002/metrics | grep "^go_goroutines " | awk '{print $2}')
 CHAOS_EVENTS=$(curl -s http://localhost:59002/metrics | grep "^biometrics_orchestrator_chaos_events_total" | awk -F'} ' '{print $2}' | awk '{sum+=$1} END {print sum}')
 UPTIME=$(ps -o etime= -p $PID)

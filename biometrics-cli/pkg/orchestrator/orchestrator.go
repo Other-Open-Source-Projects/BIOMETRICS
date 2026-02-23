@@ -67,15 +67,15 @@ func DefaultConfig(projectRoot string) OrchestratorConfig {
 		AgentsPlanPath: filepath.Join(projectRoot, "AGENTS-PLAN.md"),
 		MaxParallel:    3,
 		ModelLimits: map[string]int{
-			"qwen/qwen3.5-397b-a17b":     1,
-			"opencode/kimi-k2.5-free":    1,
-			"opencode/minimax-m2.5-free": 1,
+			"google/antigravity-gemini-3.1-pro": 1,
+			"opencode/kimi-k2.5-free":           1,
+			"opencode/minimax-m2.5-free":        1,
 		},
 		Models: map[string]AgentModel{
-			"qwen": {
-				Name:        "Qwen 3.5 397B",
+			"gemini-prime": {
+				Name:        "Gemini 3.1 Pro",
 				Provider:    "nvidia-nim",
-				ModelID:     "qwen/qwen3.5-397b-a17b",
+				ModelID:     "google/antigravity-gemini-3.1-pro",
 				Category:    []string{"build", "visual-engineering", "writing", "general"},
 				MaxParallel: 1,
 			},
@@ -304,7 +304,7 @@ func (o *Orchestrator) decrementModelUsage(modelKey string) {
 
 // waitForAllSessions waits for all sessions to complete
 func (o *Orchestrator) waitForAllSessions() {
-	timeout := time.After(5 * time.Minute)
+	timeout := time.After(24 * time.Hour) // NEVER TIMEOUT IN CEO MODE
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 

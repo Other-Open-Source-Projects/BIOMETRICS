@@ -10,8 +10,11 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"context"
 
 	"biometrics-cli/commands"
+	"biometrics-cli/internal/supervisor"
+	"biometrics-cli/pkg/logging"
 )
 
 var (
@@ -55,6 +58,8 @@ func main() {
 		runConfig()
 	case "audit":
 		runAudit()
+	case "work":
+		runBiometricsLoop()
 	default:
 		fmt.Printf("Unknown command: %s\n", command)
 		printUsage()
@@ -76,8 +81,32 @@ Commands:
   find-keys     Find existing API keys on system
   config        Manage configuration (init, validate, show)
   audit         Query and manage audit logs
-  version       Show version information
-`)
+  work          Start autonomous Biometrics Loop
+  version       Show version information`)
+}
+
+func runBiometricsLoop() {
+	ctx := context.Background()
+	
+	// Create a dedicated logger for the loop
+	rotateCfg := logging.RotationConfig{
+		Enabled:    true,
+		MaxSize:    10 * 1024 * 1024,
+		MaxBackups: 5,
+		MaxAge:     30,
+	}
+	
+	logger, err := logging.NewFileLogger("biometrics-loop.log", logging.InfoLevel, rotateCfg)
+	if err != nil {
+		fmt.Printf("Failed to initialize logger: %v\n", err)
+		os.Exit(1)
+	}
+
+	loop := supervisor.NewBiometricsLoop("biometrics", logger)
+	if err := loop.Start(ctx); err != nil {
+		fmt.Printf("Biometrics Loop failed: %v\n", err)
+		os.Exit(1)
+	}
 }
 
 func printVersion() {
@@ -118,8 +147,7 @@ Usage: biometrics config <subcommand>
 Subcommands:
   init       Create default configuration file
   validate   Validate existing configuration
-  show       Display current configuration
-`)
+  show       Display current configuration`)
 }
 
 func initConfig() {

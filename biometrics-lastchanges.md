@@ -115,3 +115,24 @@
 
 **Arbeitsbereich:**
  {Swarm Engine Pivot};PLAN-004-/Users/jeremy/.sisyphus/plans/biometrics/-COMPLETED
+
+## 2026-02-23 04:30 - [BIOMETRICS GO APP REBRANDING]
+
+**Beobachtungen:**
+- Das alte "OpenCode Web" / Code Generation Dashboard im Verzeichnis `biometrics-cli/web-ui/index.html` war rudimentär und nicht im Enterprise BIOMETRICS GO Design.
+- Die Vorgaben der Mandate (0.36 Delqhi-Loop, 0.38 Project Isolation, 0.11 Swarm Delegation) waren im UI nicht visuell repräsentiert.
+
+**Änderungen:**
+- **Vollständiges Rebranding:** Das UI wurde in "BIOMETRICS GO - Enterprise Orchestrator" umbenannt.
+- **Enterprise Design:** Neues High-Tech Dark Mode UI mit Tailwind CSS und FontAwesome implementiert.
+- **Project Isolation (Mandat 0.38):** Dropdown zur Projektauswahl (BIOMETRICS, SIN-Solver, Simone-Webshop) hinzugefügt, sodass Tasks zielgerichtet einem Workspace zugewiesen werden können.
+- **Delqhi-Loop Toggle (Mandat 0.36):** UI-Schalter für den Endlos-Modus hinzugefügt.
+- **Swarm Engine Toggle:** Visueller Schalter für parallele Minimax-Agenten hinzugefügt.
+- **Erweiterte Agenten-Matrix:** Alle in der finalen Matrix definierten Agenten (Sisyphus, Sisyphus Jr., Prometheus, Oracle, Explore, Librarian, Metis, Momus) stehen nun im Dropdown zur Verfügung.
+- **Echtzeit-Terminal:** Visuelles Upgrade der Log-Konsole zur besseren Nachverfolgung der Swarm-Protokolle.
+
+**Nächste Schritte:**
+- Verbindung der UI-Toggles (Delqhi-Loop, Swarm) mit den entsprechenden Go-Backend-Endpunkten, sobald diese in der API erweitert werden.
+
+**Arbeitsbereich:**
+ {Web UI Rebranding};TASK-001-/Users/jeremy/dev/BIOMETRICS/biometrics-cli/web-ui/index.html-COMPLETED

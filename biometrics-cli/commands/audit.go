@@ -398,6 +398,5 @@ Examples:
   biometrics audit stats
 
   # Cleanup old logs
-  biometrics audit cleanup --retention-days 90
-`)
+  biometrics audit cleanup --retention-days 90`)
 }

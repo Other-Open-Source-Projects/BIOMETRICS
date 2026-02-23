@@ -57,7 +57,7 @@ steps:
     type: agent
     agent:
       provider: nvidia-nim
-      model: qwen/qwen3.5-397b-a17b
+      model: google/antigravity-gemini-3.1-pro
       prompt: |
         Suggest refactoring based on detected smells.
         Prioritize by impact and effort
@@ -72,7 +72,7 @@ steps:
     type: agent
     agent:
       provider: nvidia-nim
-      model: qwen/qwen3.5-397b-a17b
+      model: google/antigravity-gemini-3.1-pro
       prompt: |
         Apply refactoring: {{inputs.refactor_type}}
         Ensure: preserve behavior, improve readability, maintain tests
