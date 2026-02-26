@@ -1,0 +1,1806 @@
+openapi: 3.0.3
+info:
+  title: BIOMETRICS Control Plane API
+  version: 3.1.0
+  description: V3 API for autonomous microagent runs, DAG scheduling, and blueprint bootstrap.
+servers:
+  - url: http://127.0.0.1:59013
+paths:
+  /health:
+    get:
+      summary: Liveness probe
+      responses:
+        "200":
+          description: Service is alive
+  /health/ready:
+    get:
+      summary: Readiness probe
+      responses:
+        "200":
+          description: Runtime is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ready, db, actors, scheduler, opencode_available, codex_auth_ready, provider_status, skills_loaded, skills_errors, skills_system_ready]
+                properties:
+                  ready:
+                    type: boolean
+                  db:
+                    type: string
+                  actors:
+                    type: integer
+                  scheduler:
+                    type: string
+                  opencode_available:
+                    type: boolean
+                  codex_auth_ready:
+                    type: boolean
+                  skills_loaded:
+                    type: integer
+                  skills_errors:
+                    type: integer
+                  skills_system_ready:
+                    type: boolean
+                  provider_status:
+                    type: object
+                    properties:
+                      default_primary:
+                        type: string
+                      default_chain:
+                        type: array
+                        items:
+                          type: string
+                      providers_total:
+                        type: integer
+                      providers_available:
+                        type: integer
+                  codex_auth_status:
+                    $ref: "#/components/schemas/CodexAuthStatus"
+                  onboard_last_status:
+                    type: string
+        "503":
+          description: Runtime is not ready
+  /metrics:
+    get:
+      summary: Prometheus metrics
+      description: |
+        Exposes runtime counters and latency estimates.
+        Stable core series include:
+        - biometrics_runs_started
+        - biometrics_runs_completed
+        - biometrics_runs_failed
+        - biometrics_tasks_started
+        - biometrics_tasks_completed
+        - biometrics_tasks_failed
+        - biometrics_retries_scheduled
+        - biometrics_fallbacks_triggered
+        - biometrics_backpressure_signals
+        - biometrics_eventbus_dropped_events
+        - biometrics_eventbus_subscribers
+        - biometrics_scheduler_ready_queue_depth
+        - biometrics_scheduler_ready_queue_depth_max
+        - biometrics_task_dispatch_latency_*
+      responses:
+        "200":
+          description: Metrics payload
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /api/v1/runs:
+    post:
+      summary: Start run
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [project_id, goal]
+              properties:
+                project_id:
+                  type: string
+                goal:
+                  type: string
+                mode:
+                  type: string
+                  enum: [autonomous, supervised]
+                  default: autonomous
+                skills:
+                  type: array
+                  items:
+                    type: string
+                skill_selection_mode:
+                  type: string
+                  enum: [auto, explicit, off]
+                  default: auto
+                scheduler_mode:
+                  type: string
+                  enum: [dag_parallel_v1, serial]
+                max_parallelism:
+                  type: integer
+                  minimum: 1
+                  maximum: 32
+                model_preference:
+                  type: string
+                  default: codex
+                fallback_chain:
+                  type: array
+                  items:
+                    type: string
+                model_id:
+                  type: string
+                context_budget:
+                  type: integer
+                  minimum: 1000
+                  maximum: 200000
+                blueprint_profile:
+                  type: string
+                blueprint_modules:
+                  type: array
+                  items:
+                    type: string
+                bootstrap:
+                  type: boolean
+      responses:
+        "201":
+          description: Run created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Run"
+    get:
+      summary: List runs
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Runs list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Run"
+
+  /api/v1/runs/{run_id}:
+    get:
+      summary: Get run status
+      parameters:
+        - in: path
+          name: run_id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Run
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Run"
+  /api/v1/runs/{run_id}/tasks:
+    get:
+      summary: List run tasks
+      parameters:
+        - in: path
+          name: run_id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+  /api/v1/runs/{run_id}/attempts:
+    get:
+      summary: List run attempts
+      parameters:
+        - in: path
+          name: run_id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Task attempts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TaskAttempt"
+  /api/v1/runs/{run_id}/graph:
+    get:
+      summary: Get materialized run DAG
+      parameters:
+        - in: path
+          name: run_id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Task graph
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskGraph"
+  /api/v1/runs/{run_id}/pause:
+    post:
+      summary: Pause run
+      parameters:
+        - in: path
+          name: run_id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Paused
+  /api/v1/runs/{run_id}/resume:
+    post:
+      summary: Resume run
+      parameters:
+        - in: path
+          name: run_id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Resumed
+  /api/v1/runs/{run_id}/cancel:
+    post:
+      summary: Cancel run
+      parameters:
+        - in: path
+          name: run_id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cancelled
+
+  /api/v1/blueprints:
+    get:
+      summary: List blueprint profiles
+      responses:
+        "200":
+          description: Blueprint profile list
+  /api/v1/blueprints/{profile}:
+    get:
+      summary: Get blueprint profile details
+      parameters:
+        - in: path
+          name: profile
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Blueprint profile details
+
+  /api/v1/models:
+    get:
+      summary: List available model providers and defaults
+      responses:
+        "200":
+          description: Model catalog
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelCatalog"
+
+  /api/v1/auth/codex/status:
+    get:
+      summary: Get Codex auth broker status
+      responses:
+        "200":
+          description: Codex auth status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CodexAuthStatus"
+
+  /api/v1/auth/codex/login:
+    post:
+      summary: Trigger Codex login via official CLI broker
+      responses:
+        "200":
+          description: Codex auth status after login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CodexAuthStatus"
+
+  /api/v1/auth/codex/logout:
+    post:
+      summary: Trigger Codex logout via official CLI broker
+      responses:
+        "200":
+          description: Codex auth status after logout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CodexAuthStatus"
+
+  /api/v1/skills:
+    get:
+      summary: List discovered skills
+      responses:
+        "200":
+          description: Skills list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Skill"
+
+  /api/v1/skills/{name}:
+    get:
+      summary: Get skill by name
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Skill metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Skill"
+
+  /api/v1/skills/reload:
+    post:
+      summary: Reload skill catalog
+      responses:
+        "200":
+          description: Reload outcome
+
+  /api/v1/skills/install:
+    post:
+      summary: Install skill via configured skill installer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                repo:
+                  type: string
+                url:
+                  type: string
+                paths:
+                  type: array
+                  items:
+                    type: string
+                ref:
+                  type: string
+                dest:
+                  type: string
+                method:
+                  type: string
+                experimental:
+                  type: boolean
+      responses:
+        "200":
+          description: Install result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationResult"
+
+  /api/v1/skills/create:
+    post:
+      summary: Create skill via configured skill creator
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                path:
+                  type: string
+                resources:
+                  type: array
+                  items:
+                    type: string
+                examples:
+                  type: boolean
+                validate:
+                  type: boolean
+      responses:
+        "200":
+          description: Create result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationResult"
+
+  /api/v1/skills/enable:
+    post:
+      summary: Enable a skill by name or path
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                path:
+                  type: string
+      responses:
+        "200":
+          description: Enable result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationResult"
+
+  /api/v1/skills/disable:
+    post:
+      summary: Disable a skill by name or path
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                path:
+                  type: string
+      responses:
+        "200":
+          description: Disable result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationResult"
+
+  /api/v1/projects:
+    get:
+      summary: List projects
+      responses:
+        "200":
+          description: Projects
+  /api/v1/projects/{project_id}/bootstrap:
+    post:
+      summary: Bootstrap project files from selected blueprint profile/modules
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                blueprint_profile:
+                  type: string
+                blueprint_modules:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: Bootstrap applied
+
+  /api/v1/orchestrator/capabilities:
+    get:
+      summary: List orchestrator capabilities
+      responses:
+        "200":
+          description: Orchestrator capability matrix
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrchestratorCapabilities"
+
+  /api/v1/orchestrator/plans:
+    post:
+      summary: Generate orchestrator execution plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrchestratorPlanRequest"
+      responses:
+        "201":
+          description: Orchestrator plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrchestratorPlan"
+
+  /api/v1/orchestrator/runs:
+    post:
+      summary: Start orchestrator run
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrchestratorRunRequest"
+      responses:
+        "201":
+          description: Orchestrator run created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrchestratorRun"
+
+  /api/v1/orchestrator/runs/{id}:
+    get:
+      summary: Get orchestrator run
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Orchestrator run
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrchestratorRun"
+
+  /api/v1/orchestrator/runs/{id}/resume-from-step:
+    post:
+      summary: Resume orchestrator run from step
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [step_id]
+              properties:
+                step_id:
+                  type: string
+      responses:
+        "200":
+          description: Orchestrator run resumed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrchestratorRun"
+
+  /api/v1/orchestrator/runs/{id}/scorecard:
+    get:
+      summary: Get orchestrator run scorecard
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Run scorecard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Scorecard"
+
+  /api/v1/orchestrator/optimizer/recommendations:
+    post:
+      summary: Generate optimizer recommendation (shadow mode)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [project_id, goal]
+              properties:
+                project_id:
+                  type: string
+                goal:
+                  type: string
+                objective:
+                  $ref: "#/components/schemas/OptimizerObjective"
+      responses:
+        "201":
+          description: Recommendation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OptimizerRecommendation"
+    get:
+      summary: List optimizer recommendations
+      parameters:
+        - in: query
+          name: project_id
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [generated, applied, rejected]
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+      responses:
+        "200":
+          description: Recommendation list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OptimizerRecommendation"
+
+  /api/v1/orchestrator/optimizer/recommendations/{id}:
+    get:
+      summary: Get optimizer recommendation by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Recommendation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OptimizerRecommendation"
+
+  /api/v1/orchestrator/optimizer/recommendations/{id}/apply:
+    post:
+      summary: Apply recommendation and start orchestrator run
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Applied recommendation and created run
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OptimizerApplyResult"
+
+  /api/v1/orchestrator/optimizer/recommendations/{id}/reject:
+    post:
+      summary: Reject recommendation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        "200":
+          description: Rejected recommendation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OptimizerRecommendation"
+
+  /api/v1/evals/run:
+    post:
+      summary: Start eval run
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EvalRunRequest"
+      responses:
+        "201":
+          description: Eval run created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvalRun"
+
+  /api/v1/evals/runs/{id}:
+    get:
+      summary: Get eval run status
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Eval run
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvalRun"
+
+  /api/v1/evals/leaderboard:
+    get:
+      summary: List eval leaderboard entries
+      responses:
+        "200":
+          description: Leaderboard entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderboardEntry"
+
+  /api/v1/fs/tree:
+    get:
+      summary: List files
+      parameters:
+        - in: query
+          name: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Directory entries
+  /api/v1/fs/file:
+    get:
+      summary: Read file
+      parameters:
+        - in: query
+          name: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File content
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /api/v1/events:
+    get:
+      summary: SSE event stream
+      description: |
+        Replays the latest `limit` events for the selected run (or all runs),
+        then continues with live streaming events.
+        Each event is emitted with:
+        - typed frame (`event: <event_type>`)
+        - compatibility frame (`event: message`)
+        Both frames carry the same `id`.
+        Includes runtime operations events such as:
+        - `opencode.install.started|succeeded|failed`
+        - `run.supervision.checkpoint`
+        - `auth.codex.login.started|succeeded|failed`
+        - `model.selected`
+        - `model.fallback.triggered|exhausted`
+        - `context.compiled`
+        - `optimizer.recommendation.generated|applied|rejected`
+        - `optimizer.validation.completed`
+      parameters:
+        - in: query
+          name: run_id
+          schema:
+            type: string
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Event stream
+  /api/v1/ws:
+    get:
+      summary: WebSocket event stream
+      responses:
+        "101":
+          description: Switching protocols
+
+components:
+  schemas:
+    Run:
+      type: object
+      required: [id, project_id, goal, mode, status, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        project_id:
+          type: string
+        goal:
+          type: string
+        mode:
+          type: string
+          enum: [autonomous, supervised]
+        skills:
+          type: array
+          items:
+            type: string
+        skill_selection_mode:
+          type: string
+          enum: [auto, explicit, off]
+        status:
+          type: string
+          enum: [queued, running, paused, cancelled, completed, failed]
+        error:
+          type: string
+        scheduler_mode:
+          type: string
+          enum: [dag_parallel_v1, serial]
+        max_parallelism:
+          type: integer
+          minimum: 1
+          maximum: 32
+        fallback_triggered:
+          type: boolean
+        model_preference:
+          type: string
+        fallback_chain:
+          type: array
+          items:
+            type: string
+        model_id:
+          type: string
+        context_budget:
+          type: integer
+        blueprint_profile:
+          type: string
+        blueprint_modules:
+          type: array
+          items:
+            type: string
+        bootstrap:
+          type: boolean
+        optimizer_recommendation_id:
+          type: string
+        optimizer_confidence:
+          type: string
+          enum: [low, medium, high]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Task:
+      type: object
+      required: [id, run_id, name, agent, status, depends_on, attempt, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        run_id:
+          type: string
+        name:
+          type: string
+        agent:
+          type: string
+        status:
+          type: string
+          enum: [pending, running, completed, failed, skipped, cancelled]
+        lifecycle_state:
+          type: string
+          enum: [blocked, ready, running, retrying, completed, failed, skipped, cancelled]
+        depends_on:
+          type: array
+          items:
+            type: string
+        priority:
+          type: integer
+        max_attempts:
+          type: integer
+          minimum: 1
+        attempt:
+          type: integer
+          minimum: 0
+        last_error:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        started_at:
+          type: string
+          format: date-time
+        finished_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+
+    TaskAttempt:
+      type: object
+      required: [id, run_id, task_id, agent, status, started_at, finished_at]
+      properties:
+        id:
+          type: string
+        run_id:
+          type: string
+        task_id:
+          type: string
+        agent:
+          type: string
+        status:
+          type: string
+        log:
+          type: string
+        error:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+        finished_at:
+          type: string
+          format: date-time
+
+    TaskGraph:
+      type: object
+      required: [run_id, nodes, edges, created_at]
+      properties:
+        run_id:
+          type: string
+        nodes:
+          type: array
+          items:
+            type: object
+            required: [id, name, agent, priority, status, lifecycle_state]
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              agent:
+                type: string
+              depends_on:
+                type: array
+                items:
+                  type: string
+              priority:
+                type: integer
+              status:
+                type: string
+              lifecycle_state:
+                type: string
+        edges:
+          type: array
+          items:
+            type: object
+            required: [from, to]
+            properties:
+              from:
+                type: string
+              to:
+                type: string
+        critical_path:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    CodexAuthStatus:
+      type: object
+      required: [ready, logged_in]
+      properties:
+        ready:
+          type: boolean
+        logged_in:
+          type: boolean
+        user:
+          type: string
+        last_error:
+          type: string
+        last_checked:
+          type: string
+          format: date-time
+
+    ModelCatalog:
+      type: object
+      required: [default_primary, default_chain, providers]
+      properties:
+        default_primary:
+          type: string
+        default_chain:
+          type: array
+          items:
+            type: string
+        providers:
+          type: array
+          items:
+            type: object
+            required: [id, name, status, default, available]
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              status:
+                type: string
+              default:
+                type: boolean
+              available:
+                type: boolean
+              model_id:
+                type: string
+              description:
+                type: string
+
+    Skill:
+      type: object
+      required: [name, description, path_to_skill_md, scope, enabled]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        short_description:
+          type: string
+        path_to_skill_md:
+          type: string
+        scope:
+          type: string
+          enum: [repo, user, system, admin]
+        enabled:
+          type: boolean
+
+    OperationResult:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        output:
+          type: array
+          items:
+            type: string
+
+    OrchestratorCapabilities:
+      type: object
+      required: [strategy_modes, policy_presets, max_parallelism, resume_from_step, arena_mode, eval_support, decision_explain, audit_trail, idempotent_step_ids]
+      properties:
+        strategy_modes:
+          type: array
+          items:
+            type: string
+            enum: [deterministic, adaptive, arena]
+        policy_presets:
+          type: array
+          items:
+            type: string
+        max_parallelism:
+          type: integer
+          minimum: 1
+          maximum: 32
+        resume_from_step:
+          type: boolean
+        arena_mode:
+          type: boolean
+        eval_support:
+          type: boolean
+        decision_explain:
+          type: boolean
+        audit_trail:
+          type: boolean
+        idempotent_step_ids:
+          type: boolean
+
+    OrchestratorAgentProfile:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        allowed_tools:
+          type: array
+          items:
+            type: string
+        max_parallelism:
+          type: integer
+          minimum: 1
+          maximum: 32
+        model_policy:
+          type: string
+
+    OrchestratorPolicyProfile:
+      type: object
+      properties:
+        exfiltration:
+          type: string
+        secrets:
+          type: string
+        filesystem:
+          type: string
+        network:
+          type: string
+        approvals:
+          type: string
+
+    OrchestratorObjective:
+      type: object
+      required: [quality, speed, cost]
+      properties:
+        quality:
+          type: number
+          minimum: 0
+          maximum: 1
+        speed:
+          type: number
+          minimum: 0
+          maximum: 1
+        cost:
+          type: number
+          minimum: 0
+          maximum: 1
+
+    OrchestratorStep:
+      type: object
+      required: [id, name, status]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        depends_on:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [pending, running, completed, failed]
+        error:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+        finished_at:
+          type: string
+          format: date-time
+
+    OrchestratorPlanRequest:
+      type: object
+      required: [goal]
+      properties:
+        project_id:
+          type: string
+        goal:
+          type: string
+        strategy_mode:
+          type: string
+          enum: [deterministic, adaptive, arena]
+        agent_profiles:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrchestratorAgentProfile"
+        policy_profile:
+          $ref: "#/components/schemas/OrchestratorPolicyProfile"
+        objective:
+          $ref: "#/components/schemas/OrchestratorObjective"
+        skills:
+          type: array
+          items:
+            type: string
+        skill_selection_mode:
+          type: string
+          enum: [auto, explicit, off]
+        scheduler_mode:
+          type: string
+          enum: [dag_parallel_v1, serial]
+        max_parallelism:
+          type: integer
+          minimum: 1
+          maximum: 32
+        model_preference:
+          type: string
+        fallback_chain:
+          type: array
+          items:
+            type: string
+        model_id:
+          type: string
+        context_budget:
+          type: integer
+          minimum: 1000
+          maximum: 200000
+        optimizer_recommendation_id:
+          type: string
+        optimizer_confidence:
+          type: string
+          enum: [low, medium, high]
+
+    OrchestratorPlan:
+      type: object
+      required: [id, project_id, goal, strategy_mode, policy_profile, objective, steps, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        project_id:
+          type: string
+        goal:
+          type: string
+        strategy_mode:
+          type: string
+          enum: [deterministic, adaptive, arena]
+        agent_profiles:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrchestratorAgentProfile"
+        policy_profile:
+          $ref: "#/components/schemas/OrchestratorPolicyProfile"
+        objective:
+          $ref: "#/components/schemas/OrchestratorObjective"
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrchestratorStep"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    OrchestratorRunRequest:
+      type: object
+      properties:
+        plan_id:
+          type: string
+        project_id:
+          type: string
+        goal:
+          type: string
+        strategy_mode:
+          type: string
+          enum: [deterministic, adaptive, arena]
+        agent_profiles:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrchestratorAgentProfile"
+        policy_profile:
+          $ref: "#/components/schemas/OrchestratorPolicyProfile"
+        objective:
+          $ref: "#/components/schemas/OrchestratorObjective"
+        skills:
+          type: array
+          items:
+            type: string
+        skill_selection_mode:
+          type: string
+          enum: [auto, explicit, off]
+        scheduler_mode:
+          type: string
+          enum: [dag_parallel_v1, serial]
+        max_parallelism:
+          type: integer
+          minimum: 1
+          maximum: 32
+        model_preference:
+          type: string
+        fallback_chain:
+          type: array
+          items:
+            type: string
+        model_id:
+          type: string
+        context_budget:
+          type: integer
+          minimum: 1000
+          maximum: 200000
+
+    OrchestratorRun:
+      type: object
+      required: [id, plan_id, project_id, goal, strategy_mode, policy_profile, objective, steps, status, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        plan_id:
+          type: string
+        underlying_run_id:
+          type: string
+        project_id:
+          type: string
+        goal:
+          type: string
+        strategy_mode:
+          type: string
+          enum: [deterministic, adaptive, arena]
+        agent_profiles:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrchestratorAgentProfile"
+        policy_profile:
+          $ref: "#/components/schemas/OrchestratorPolicyProfile"
+        objective:
+          $ref: "#/components/schemas/OrchestratorObjective"
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrchestratorStep"
+        current_step_id:
+          type: string
+        optimizer_recommendation_id:
+          type: string
+        optimizer_confidence:
+          type: string
+          enum: [low, medium, high]
+        status:
+          type: string
+          enum: [queued, running, paused, cancelled, completed, failed]
+        error:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        finished_at:
+          type: string
+          format: date-time
+
+    Scorecard:
+      type: object
+      required: [run_id, quality_score, median_time_to_green_seconds, cost_per_success, critical_policy_violations, success_rate, timeouts, dispatch_p95_ms, fallback_rate, backpressure_per_run, objective, composite_score, thresholds, generated_at]
+      properties:
+        run_id:
+          type: string
+        underlying_run_id:
+          type: string
+        dataset_id:
+          type: string
+        evidence_paths:
+          type: array
+          items:
+            type: string
+        comparison:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/EvalComparison"
+        quality_score:
+          type: number
+          minimum: 0
+          maximum: 1
+        median_time_to_green_seconds:
+          type: number
+          minimum: 0
+        cost_per_success:
+          type: number
+          minimum: 0
+        critical_policy_violations:
+          type: integer
+          minimum: 0
+        success_rate:
+          type: number
+          minimum: 0
+          maximum: 1
+        timeouts:
+          type: integer
+          minimum: 0
+        dispatch_p95_ms:
+          type: number
+          minimum: 0
+        fallback_rate:
+          type: number
+          minimum: 0
+        backpressure_per_run:
+          type: number
+          minimum: 0
+        objective:
+          $ref: "#/components/schemas/OrchestratorObjective"
+        composite_score:
+          type: number
+          minimum: 0
+          maximum: 1
+        thresholds:
+          type: object
+          additionalProperties:
+            type: boolean
+        generated_at:
+          type: string
+          format: date-time
+
+    EvalRunRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        candidate_strategy_mode:
+          type: string
+          enum: [deterministic, adaptive, arena]
+        baseline_strategy_mode:
+          type: string
+          enum: [deterministic, adaptive, arena]
+        sample_size:
+          type: integer
+          minimum: 1
+        quality_target:
+          type: number
+        speed_improvement_min:
+          type: number
+        cost_reduction_min:
+          type: number
+        dataset_id:
+          type: string
+        seed:
+          type: integer
+        tasks_limit:
+          type: integer
+          minimum: 1
+        competitor_baselines:
+          type: array
+          items:
+            type: string
+
+    EvalComparison:
+      type: object
+      required: [quality_delta, time_to_green_improvement_percent, cost_improvement_percent, composite_delta]
+      properties:
+        quality_delta:
+          type: number
+        time_to_green_improvement_percent:
+          type: number
+        cost_improvement_percent:
+          type: number
+        composite_delta:
+          type: number
+
+    EvalMetrics:
+      type: object
+      required: [quality_score, median_time_to_green_seconds, cost_per_success, composite_score]
+      properties:
+        quality_score:
+          type: number
+          minimum: 0
+          maximum: 1
+        median_time_to_green_seconds:
+          type: number
+          minimum: 0
+        cost_per_success:
+          type: number
+          minimum: 0
+        composite_score:
+          type: number
+          minimum: 0
+          maximum: 1
+
+    GatePackV1:
+      type: object
+      required: [quality, time, cost, regression, all_pass]
+      properties:
+        quality:
+          type: boolean
+        time:
+          type: boolean
+        cost:
+          type: boolean
+        regression:
+          type: boolean
+        all_pass:
+          type: boolean
+
+    EvalRun:
+      type: object
+      required: [id, name, candidate_strategy_mode, baseline_strategy_mode, sample_size, dataset_id, status, metrics, regression_detected, started_at]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        candidate_strategy_mode:
+          type: string
+          enum: [deterministic, adaptive, arena]
+        baseline_strategy_mode:
+          type: string
+          enum: [deterministic, adaptive, arena]
+        sample_size:
+          type: integer
+          minimum: 1
+        dataset_id:
+          type: string
+        seed:
+          type: integer
+        tasks_limit:
+          type: integer
+          minimum: 1
+        competitor_baselines:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [queued, running, completed, failed]
+        metrics:
+          $ref: "#/components/schemas/EvalMetrics"
+        comparison:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/EvalComparison"
+        gate_pack_v1:
+          $ref: "#/components/schemas/GatePackV1"
+        evidence_paths:
+          type: array
+          items:
+            type: string
+        regression_detected:
+          type: boolean
+        error:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+        finished_at:
+          type: string
+          format: date-time
+
+    LeaderboardEntry:
+      type: object
+      required: [strategy, runs, quality_score, median_time_to_green_seconds, cost_per_success, composite_score, updated_at]
+      properties:
+        strategy:
+          type: string
+        runs:
+          type: integer
+          minimum: 0
+        quality_score:
+          type: number
+          minimum: 0
+          maximum: 1
+        median_time_to_green_seconds:
+          type: number
+          minimum: 0
+        cost_per_success:
+          type: number
+          minimum: 0
+        composite_score:
+          type: number
+          minimum: 0
+          maximum: 1
+        updated_at:
+          type: string
+          format: date-time
+
+    OptimizerObjective:
+      type: object
+      required: [quality, speed, cost]
+      properties:
+        quality:
+          type: number
+          minimum: 0
+          maximum: 1
+        speed:
+          type: number
+          minimum: 0
+          maximum: 1
+        cost:
+          type: number
+          minimum: 0
+          maximum: 1
+
+    OptimizerPredictedGates:
+      type: object
+      required:
+        - quality_pass
+        - time_pass
+        - cost_pass
+        - regression_pass
+        - all_pass
+        - gate_pass_count
+        - predicted_quality_score
+        - predicted_time_improvement_percent
+        - predicted_cost_improvement_percent
+        - predicted_cost_per_success
+        - predicted_regression_detected
+        - predicted_composite_score
+      properties:
+        quality_pass:
+          type: boolean
+        time_pass:
+          type: boolean
+        cost_pass:
+          type: boolean
+        regression_pass:
+          type: boolean
+        all_pass:
+          type: boolean
+        gate_pass_count:
+          type: integer
+          minimum: 0
+          maximum: 4
+        predicted_quality_score:
+          type: number
+          minimum: 0
+          maximum: 1
+        predicted_time_improvement_percent:
+          type: number
+        predicted_cost_improvement_percent:
+          type: number
+        predicted_cost_per_success:
+          type: number
+          minimum: 0
+        predicted_regression_detected:
+          type: boolean
+        predicted_composite_score:
+          type: number
+          minimum: 0
+          maximum: 1
+
+    OptimizerValidation:
+      type: object
+      required: [id, recommendation_id, status, quality_pass, time_pass, cost_pass, regression_pass, all_pass, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        recommendation_id:
+          type: string
+        eval_run_id:
+          type: string
+        status:
+          type: string
+          enum: [pending, running, completed, failed]
+        quality_pass:
+          type: boolean
+        time_pass:
+          type: boolean
+        cost_pass:
+          type: boolean
+        regression_pass:
+          type: boolean
+        all_pass:
+          type: boolean
+        summary:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    OptimizerRecommendation:
+      type: object
+      required:
+        - id
+        - project_id
+        - goal
+        - strategy_mode
+        - scheduler_mode
+        - max_parallelism
+        - model_preference
+        - context_budget
+        - objective
+        - confidence
+        - predicted_gates
+        - rationale
+        - status
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        project_id:
+          type: string
+        goal:
+          type: string
+        strategy_mode:
+          type: string
+          enum: [deterministic, adaptive, arena]
+        scheduler_mode:
+          type: string
+          enum: [dag_parallel_v1, serial]
+        max_parallelism:
+          type: integer
+          minimum: 1
+          maximum: 32
+        model_preference:
+          type: string
+        fallback_chain:
+          type: array
+          items:
+            type: string
+        model_id:
+          type: string
+        context_budget:
+          type: integer
+          minimum: 1000
+          maximum: 200000
+        objective:
+          $ref: "#/components/schemas/OptimizerObjective"
+        confidence:
+          type: string
+          enum: [low, medium, high]
+        predicted_gates:
+          $ref: "#/components/schemas/OptimizerPredictedGates"
+        rationale:
+          type: string
+        source_scorecard_run_id:
+          type: string
+        status:
+          type: string
+          enum: [generated, applied, rejected]
+        applied_run_id:
+          type: string
+        rejected_reason:
+          type: string
+        validation:
+          $ref: "#/components/schemas/OptimizerValidation"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    OptimizerApplyResult:
+      type: object
+      required: [recommendation_id, run]
+      properties:
+        recommendation_id:
+          type: string
+        recommendation:
+          $ref: "#/components/schemas/OptimizerRecommendation"
+        run:
+          $ref: "#/components/schemas/OrchestratorRun"
