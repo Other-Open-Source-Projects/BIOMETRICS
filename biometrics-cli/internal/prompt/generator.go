@@ -9,7 +9,7 @@ func GenerateEnterprisePrompt(projectID string, planName string, taskID string, 
 
 ID: %s
 PROJECT_ID: %s
-PLAN_FILE: /Users/jeremy/.sisyphus/plans/%s/%s
+PLAN_FILE: ~/.sisyphus/plans/%s/%s
 
 SYSTEM_ROLE: Du bist ein reiner Ausfuehrungs-Agent. Keine Fragen. Keine Interpretation.
 

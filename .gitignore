@@ -1,5 +1,45 @@
 biometrics-cli/node_modules/
 biometrics-cli/.env
+biometrics-cli/web-v3/node_modules/
+biometrics-cli/web-v3/dist/
+website/node_modules/
+website/.next/
+website/playwright-report/
+website/test-results/
+website/output/
+.biometrics/
+.env
+*.log
+bin/
+.DS_Store
+**/__pycache__/
+.cache/
+.serena/
+.agents
+.agents/
+biometrics-cli/.cache/
+biometrics-cli/web-v3/playwright-report/
+biometrics-cli/web-v3/test-results/
+
+# Local orchestration scratch (never track)
+.sisyphus/
+
+# Never vendor node_modules into templates
+templates/**/node_modules/
+
+# OpenCode plugin deps are local-only
+.opencode/node_modules/
+
+# Generated binaries / test artifacts
+biometrics-cli/bin/
+biometrics-cli/*.test
+biometrics-cli/*.out
+biometrics-cli/http.test
+biometrics-cli/biometrics
+biometrics-cli/api-server
+biometrics-cli/orchestrator
+biometrics-onboard/
+biometrics-onboard
 
 # OpenCode Configuration (template only)
 .opencode/opencode.json

@@ -1,11 +1,16 @@
 package orchestrator
 
+// Deprecated: This orchestrator is legacy and not part of the BIOMETRICS V3 control-plane runtime.
+// Prefer `biometrics-cli/cmd/controlplane` scheduling and runtime orchestration.
+
 import (
 	"biometrics-cli/internal/metrics"
 	"biometrics-cli/internal/state"
 	"biometrics-cli/internal/tracker"
 	"fmt"
+	"os"
 	"os/exec"
+	"strings"
 	"time"
 )
 
@@ -272,7 +277,15 @@ func (o *Orchestrator) RunCycle() {
 
 	state.GlobalState.Log("INFO", fmt.Sprintf("Executing task %s with agent %s", task.ID, agent.Name))
 
-	cmd := exec.Command("opencode", task.Description, "--agent", agent.Name)
+	args := []string{"run", "--agent", agent.Name}
+	if strings.TrimSpace(agent.Model) != "" {
+		args = append(args, "--model", strings.TrimSpace(agent.Model))
+	}
+	if dir := resolveOpenCodeRunDir(); dir != "" {
+		args = append(args, "--dir", dir)
+	}
+	args = append(args, task.Description)
+	cmd := exec.Command("opencode", args...)
 	cmd.Start()
 
 	time.Sleep(10 * time.Second)
@@ -291,4 +304,24 @@ func (o *Orchestrator) Start(autoMode bool) {
 
 func init() {
 	Init()
+}
+
+func resolveOpenCodeRunDir() string {
+	for _, candidate := range []string{
+		strings.TrimSpace(os.Getenv("BIOMETRICS_OPENCODE_DIR")),
+		strings.TrimSpace(os.Getenv("BIOMETRICS_WORKSPACE")),
+	} {
+		if candidate == "" {
+			continue
+		}
+		if stat, err := os.Stat(candidate); err == nil && stat.IsDir() {
+			return candidate
+		}
+	}
+	if cwd, err := os.Getwd(); err == nil {
+		if stat, statErr := os.Stat(cwd); statErr == nil && stat.IsDir() {
+			return cwd
+		}
+	}
+	return ""
 }

@@ -1,5 +1,8 @@
 package orchestrator
 
+// Deprecated: This package-level orchestrator is legacy and not part of the BIOMETRICS V3 control-plane runtime.
+// Prefer `biometrics-cli/cmd/controlplane` scheduling and runtime orchestration.
+
 import (
 	"context"
 	"encoding/json"
@@ -188,9 +191,22 @@ func (o *Orchestrator) executeAgent(session *AgentSession) {
 	session.Status = "running"
 	fmt.Printf("🤖 Agent %s (%s) started - Model: %s\n", session.AgentName, session.Category, session.Model)
 
-	// Build opencode command
-	cmd := exec.CommandContext(o.ctx, "opencode", session.Prompt)
+	// Build opencode command (opencode 1.2.x requires `run` for non-interactive execution).
+	modelID := ""
+	if cfg, ok := o.config.Models[session.Model]; ok {
+		modelID = cfg.ModelID
+	}
+	args := []string{"run", "--dir", o.config.ProjectRoot}
+	if session.AgentName != "" {
+		args = append(args, "--agent", session.AgentName)
+	}
+	if modelID != "" {
+		args = append(args, "--model", modelID)
+	}
+	args = append(args, session.Prompt)
+	cmd := exec.CommandContext(o.ctx, "opencode", args...)
 	cmd.Env = os.Environ()
+	cmd.Dir = o.config.ProjectRoot
 
 	// Execute
 	output, err := cmd.CombinedOutput()

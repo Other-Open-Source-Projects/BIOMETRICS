@@ -199,3 +199,59 @@ test("optimizer flow generates recommendation, applies it, and starts orchestrat
   await expect(panel.getByRole("button", { name: "Apply & Start" })).toHaveCount(0);
   await expect(panel.getByText("applied")).toBeVisible();
 });
+
+test("orchestrator workspace renders three panes and syncs shared messages", async ({ page }) => {
+  const mock = await installMockControlPlane(page);
+  await page.goto("/");
+
+  await page.getByTestId("sidebar-orchestrator").click();
+  await expect(page.getByTestId("orchestrator-workspace")).toBeVisible();
+  await expect(page.getByTestId("orchestrator-pane-backend")).toBeVisible();
+  await expect(page.getByTestId("orchestrator-pane-frontend")).toBeVisible();
+  await expect(page.getByTestId("orchestrator-pane-orchestrator")).toBeVisible();
+
+  const backendPane = page.getByTestId("orchestrator-pane-backend");
+  await page.getByTestId("orchestrator-composer-backend").fill("Implement backend schema hardening.");
+  await backendPane.getByRole("button", { name: "Send" }).click();
+
+  await expect
+    .poll(() => mock.calls.filter((entry) => entry.method === "POST" && entry.path === "/api/v1/orchestrator/sessions").length)
+    .toBe(1);
+  await expect
+    .poll(() =>
+      mock.calls.filter((entry) => entry.method === "POST" && /\/api\/v1\/orchestrator\/sessions\/[^/]+\/messages$/.test(entry.path)).length
+    )
+    .toBeGreaterThan(0);
+
+  await expect(page.getByTestId("orchestrator-pane-backend")).toContainText("Implement backend schema hardening.");
+  await expect(page.getByTestId("orchestrator-pane-frontend")).toContainText("Implement backend schema hardening.");
+  await expect(page.getByTestId("orchestrator-pane-orchestrator")).toContainText("Implement backend schema hardening.");
+});
+
+test("orchestrator SSE reconnects after stream error", async ({ page }) => {
+  const mock = await installMockControlPlane(page);
+  await page.goto("/");
+
+  await page.getByTestId("sidebar-orchestrator").click();
+  await expect(page.getByTestId("orchestrator-workspace")).toBeVisible();
+
+  await page.getByTestId("orchestrator-composer-backend").fill("Create session and connect stream.");
+  await page.getByTestId("orchestrator-pane-backend").getByRole("button", { name: "Send" }).click();
+
+  await expect
+    .poll(() =>
+      mock.calls.filter((entry) => entry.method === "POST" && entry.path === "/api/v1/orchestrator/sessions").length
+    )
+    .toBe(1);
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __eventSourceCount: () => number }).__eventSourceCount())).toBeGreaterThan(1);
+
+  const before = await page.evaluate(() => (window as unknown as { __eventSourceCount: () => number }).__eventSourceCount());
+  await page.evaluate(() => {
+    const emitError = (window as unknown as { __emitSSEError: (urlIncludes?: string) => void }).__emitSSEError;
+    emitError("/api/v1/orchestrator/sessions/");
+  });
+
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { __eventSourceCount: () => number }).__eventSourceCount()))
+    .toBeGreaterThan(before);
+});

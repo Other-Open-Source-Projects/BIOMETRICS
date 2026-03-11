@@ -16,6 +16,11 @@ BIOMETRICS ist das **zentrale Rules & Templates Repository** für KI-Agenten-Sys
 2. **Templates** - Projekt-Vorlagen für schnelle Replikation
 3. **CLI** - Bubbletea TUI für Onboarding + Project Setup
 
+**OpenCode Execution Invariant (V3 runtime):**
+- Non-interactive execution uses `opencode run` (OpenCode `>= 1.2.x`).
+- Execution directory resolution: `BIOMETRICS_OPENCODE_DIR` → `BIOMETRICS_WORKSPACE` → process working directory.
+- Details: `docs/OPENCODE.md`.
+
 ---
 
 ## 🏗️ NEUE STRUKTUR
@@ -322,10 +327,10 @@ BIOMETRICS/
 
 ## 🔗 REFERENCES
 
-- **Audit Report:** `/Users/jeremy/dev/BIOMETRICS/audit-report.md`
-- **Structure Analysis:** `/Users/jeremy/dev/BIOMETRICS/structure-analysis.md`
-- **Source of Truth Extract:** `/Users/jeremy/dev/BIOMETRICS/source-of-truth-extract.md`
-- **Rearchitecture Plan:** `/Users/jeremy/dev/BIOMETRICS/BIOMETRICS-REARCHITECTURE-PLAN.md`
+- **Audit Report:** `audit-report.md`
+- **Structure Analysis:** `structure-analysis.md`
+- **Source of Truth Extract:** `source-of-truth-extract.md`
+- **Rearchitecture Plan:** `BIOMETRICS-REARCHITECTURE-PLAN.md`
 - **Original AGENTS.md:** `~/.config/opencode/AGENTS.md` (3100+ lines, 33 mandates)
 
 ---

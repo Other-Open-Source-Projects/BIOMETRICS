@@ -1,0 +1,24 @@
+---
+title: How-to - Run, Pause, Resume, Cancel
+description: Safe operator patterns for core run control lifecycle actions.
+---
+
+## Core endpoints
+
+- `POST /api/v1/runs`
+- `POST /api/v1/runs/{run_id}/pause`
+- `POST /api/v1/runs/{run_id}/resume`
+- `POST /api/v1/runs/{run_id}/cancel`
+
+## Recommended operator flow
+
+1. Create run with explicit goal and mode.
+2. Pause only when a checkpoint or risk condition is observed.
+3. Resume with run context unchanged unless policy decision requires change.
+4. Cancel with incident note and evidence capture.
+
+## Evidence checklist
+
+- API request/response payloads
+- run_id timeline from `/api/v1/events`
+- last graph snapshot from `/api/v1/runs/{id}/graph`

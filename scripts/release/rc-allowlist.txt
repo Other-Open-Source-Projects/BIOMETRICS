@@ -1,0 +1,19 @@
+# Allowed paths for V3.1 GA closure release-candidate scope.
+README.md
+OPENCODE.md
+Makefile
+.env.example
+.env
+.gitignore
+.opencode/*
+oh-my-opencode.json
+.github/workflows/*
+archive/legacy-v2/*
+biometrics-cli/*
+docs/*
+rules/global/AGENTS.md
+scripts/*
+templates/blueprints/*
+bootstrap.sh
+biometrics-onboard
+third_party/*

@@ -16,15 +16,45 @@ import (
 
 	"biometrics-cli/internal/blueprints"
 	"biometrics-cli/internal/contracts"
+	"biometrics-cli/internal/llm"
 	"biometrics-cli/internal/optimizer"
 	"biometrics-cli/internal/policy"
 	"biometrics-cli/internal/runtime/actor"
+	"biometrics-cli/internal/runtime/background"
 	"biometrics-cli/internal/runtime/bus"
+	runtimeorchestrator "biometrics-cli/internal/runtime/orchestrator"
 	"biometrics-cli/internal/runtime/scheduler"
 	"biometrics-cli/internal/runtime/supervisor"
 	"biometrics-cli/internal/skillkit"
 	store "biometrics-cli/internal/store/sqlite"
 )
+
+type fakeLLMGateway struct {
+	execute func(context.Context, llm.Request) (llm.Response, error)
+}
+
+func (f fakeLLMGateway) Execute(ctx context.Context, req llm.Request) (llm.Response, error) {
+	if f.execute == nil {
+		return llm.Response{}, fmt.Errorf("execute not implemented")
+	}
+	return f.execute(ctx, req)
+}
+
+func (f fakeLLMGateway) ModelCatalog(_ context.Context) contracts.ModelCatalog {
+	return contracts.ModelCatalog{
+		DefaultPrimary: "codex",
+		DefaultChain:   []string{"gemini", "nim"},
+		Providers: []contracts.ModelProvider{
+			{ID: "codex", Name: "OpenAI Codex", Status: "ready", Default: true, Available: true},
+			{ID: "gemini", Name: "Google Gemini", Status: "ready", Default: false, Available: true},
+			{ID: "nim", Name: "NVIDIA NIM", Status: "ready", Default: false, Available: true},
+		},
+	}
+}
+
+func (f fakeLLMGateway) MetricsSnapshot() map[string]int64 {
+	return map[string]int64{}
+}
 
 func setupTestServer(t *testing.T) (*Server, *scheduler.RunManager, context.CancelFunc, string) {
 	t.Helper()
@@ -311,6 +341,90 @@ func TestModelsEndpoint(t *testing.T) {
 	}
 }
 
+func TestBackgroundAgentsEndpointRequiresManager(t *testing.T) {
+	server, _, _, _ := setupTestServer(t)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/agents/background", bytes.NewBufferString(`{"prompt":"draft release notes"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+	if w.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503 when background manager missing, got %d body=%s", w.Code, w.Body.String())
+	}
+}
+
+func TestBackgroundAgentsLifecycleEndpoints(t *testing.T) {
+	server, _, _, _ := setupTestServer(t)
+	server.SetBackgroundAgents(background.NewManager(fakeLLMGateway{
+		execute: func(_ context.Context, req llm.Request) (llm.Response, error) {
+			return llm.Response{
+				Output:    "background task complete",
+				Provider:  req.ModelPreference,
+				ModelID:   req.ModelID,
+				CreatedAt: time.Now().UTC(),
+			}, nil
+		},
+	}, nil))
+
+	createReq := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/agents/background",
+		bytes.NewBufferString(`{"project_id":"biometrics","agent":"coder","prompt":"prepare patch notes","model_preference":"nim","model_id":"nvidia-nim/qwen-3.5-397b"}`),
+	)
+	createReq.Header.Set("Content-Type", "application/json")
+	createW := httptest.NewRecorder()
+	server.Handler().ServeHTTP(createW, createReq)
+	if createW.Code != http.StatusCreated {
+		t.Fatalf("expected 201 create, got %d body=%s", createW.Code, createW.Body.String())
+	}
+
+	var created background.Job
+	if err := json.NewDecoder(createW.Body).Decode(&created); err != nil {
+		t.Fatalf("decode created background job: %v", err)
+	}
+	if created.ID == "" {
+		t.Fatalf("expected background job id")
+	}
+
+	var current background.Job
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		statusReq := httptest.NewRequest(http.MethodGet, "/api/v1/agents/background/"+created.ID, nil)
+		statusW := httptest.NewRecorder()
+		server.Handler().ServeHTTP(statusW, statusReq)
+		if statusW.Code != http.StatusOK {
+			t.Fatalf("expected 200 status, got %d body=%s", statusW.Code, statusW.Body.String())
+		}
+		if err := json.NewDecoder(statusW.Body).Decode(&current); err != nil {
+			t.Fatalf("decode background status: %v", err)
+		}
+		if current.Status == background.StatusCompleted {
+			break
+		}
+		time.Sleep(40 * time.Millisecond)
+	}
+	if current.Status != background.StatusCompleted {
+		t.Fatalf("expected completed background job, got %q", current.Status)
+	}
+	if current.Output == "" {
+		t.Fatalf("expected output to be set on completed background job")
+	}
+
+	listReq := httptest.NewRequest(http.MethodGet, "/api/v1/agents/background", nil)
+	listW := httptest.NewRecorder()
+	server.Handler().ServeHTTP(listW, listReq)
+	if listW.Code != http.StatusOK {
+		t.Fatalf("expected 200 list, got %d body=%s", listW.Code, listW.Body.String())
+	}
+	var listed []background.Job
+	if err := json.NewDecoder(listW.Body).Decode(&listed); err != nil {
+		t.Fatalf("decode background list: %v", err)
+	}
+	if len(listed) == 0 {
+		t.Fatalf("expected at least one background job in list")
+	}
+}
+
 func TestCodexAuthEndpointsWithoutBroker(t *testing.T) {
 	server, _, _, _ := setupTestServer(t)
 
@@ -495,6 +609,276 @@ func TestOptimizerRecommendationLifecycleEndpoints(t *testing.T) {
 	}
 	if rejectedAgain.Status != "rejected" {
 		t.Fatalf("expected rejected status on idempotent reject, got %q", rejectedAgain.Status)
+	}
+}
+
+func TestOrchestratorSessionLifecycleEndpoints(t *testing.T) {
+	server, _, _, _ := setupTestServer(t)
+
+	createReq := httptest.NewRequest(http.MethodPost, "/api/v1/orchestrator/sessions", bytes.NewBufferString(`{"project_id":"biometrics"}`))
+	createReq.Header.Set("Content-Type", "application/json")
+	createW := httptest.NewRecorder()
+	server.Handler().ServeHTTP(createW, createReq)
+	if createW.Code != http.StatusCreated {
+		t.Fatalf("expected 201 create, got %d body=%s", createW.Code, createW.Body.String())
+	}
+
+	var created runtimeorchestrator.OrchestratorSession
+	if err := json.NewDecoder(createW.Body).Decode(&created); err != nil {
+		t.Fatalf("decode created session: %v", err)
+	}
+	if created.ID == "" {
+		t.Fatalf("expected non-empty session id")
+	}
+	if len(created.Agents) != 3 {
+		t.Fatalf("expected 3 default agents, got %d", len(created.Agents))
+	}
+	if created.Status != runtimeorchestrator.OrchestratorSessionStatusActive {
+		t.Fatalf("expected active status, got %q", created.Status)
+	}
+
+	listReq := httptest.NewRequest(http.MethodGet, "/api/v1/orchestrator/sessions?project_id=biometrics", nil)
+	listW := httptest.NewRecorder()
+	server.Handler().ServeHTTP(listW, listReq)
+	if listW.Code != http.StatusOK {
+		t.Fatalf("expected 200 list, got %d body=%s", listW.Code, listW.Body.String())
+	}
+	var sessions []runtimeorchestrator.OrchestratorSession
+	if err := json.NewDecoder(listW.Body).Decode(&sessions); err != nil {
+		t.Fatalf("decode sessions list: %v", err)
+	}
+	if len(sessions) == 0 {
+		t.Fatalf("expected at least one orchestrator session")
+	}
+
+	getReq := httptest.NewRequest(http.MethodGet, "/api/v1/orchestrator/sessions/"+created.ID, nil)
+	getW := httptest.NewRecorder()
+	server.Handler().ServeHTTP(getW, getReq)
+	if getW.Code != http.StatusOK {
+		t.Fatalf("expected 200 get, got %d body=%s", getW.Code, getW.Body.String())
+	}
+
+	appendReq := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/orchestrator/sessions/"+created.ID+"/messages",
+		bytes.NewBufferString(`{"author_kind":"user","target_pane":"backend","content":"Please add API validation middleware."}`),
+	)
+	appendReq.Header.Set("Content-Type", "application/json")
+	appendW := httptest.NewRecorder()
+	server.Handler().ServeHTTP(appendW, appendReq)
+	if appendW.Code != http.StatusCreated {
+		t.Fatalf("expected 201 append, got %d body=%s", appendW.Code, appendW.Body.String())
+	}
+
+	var appended runtimeorchestrator.OrchestratorMessage
+	if err := json.NewDecoder(appendW.Body).Decode(&appended); err != nil {
+		t.Fatalf("decode appended message: %v", err)
+	}
+	if appended.Cursor <= 0 {
+		t.Fatalf("expected positive message cursor, got %d", appended.Cursor)
+	}
+	if appended.AuthorKind != runtimeorchestrator.OrchestratorAuthorKindUser {
+		t.Fatalf("expected user author kind, got %q", appended.AuthorKind)
+	}
+
+	messagesReq := httptest.NewRequest(http.MethodGet, "/api/v1/orchestrator/sessions/"+created.ID+"/messages?cursor=0&limit=100", nil)
+	messagesW := httptest.NewRecorder()
+	server.Handler().ServeHTTP(messagesW, messagesReq)
+	if messagesW.Code != http.StatusOK {
+		t.Fatalf("expected 200 messages, got %d body=%s", messagesW.Code, messagesW.Body.String())
+	}
+	var messages []runtimeorchestrator.OrchestratorMessage
+	if err := json.NewDecoder(messagesW.Body).Decode(&messages); err != nil {
+		t.Fatalf("decode messages: %v", err)
+	}
+	foundUserMessage := false
+	for _, message := range messages {
+		if message.AuthorKind == runtimeorchestrator.OrchestratorAuthorKindUser && strings.Contains(message.Content, "API validation middleware") {
+			foundUserMessage = true
+			break
+		}
+	}
+	if !foundUserMessage {
+		t.Fatalf("expected to find appended user message in session history")
+	}
+
+	modelOverrideReq := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/orchestrator/sessions/"+created.ID+"/agents/backend/model",
+		bytes.NewBufferString(`{"provider":"nim","model_id":"qwen-3.5-397b"}`),
+	)
+	modelOverrideReq.Header.Set("Content-Type", "application/json")
+	modelOverrideW := httptest.NewRecorder()
+	server.Handler().ServeHTTP(modelOverrideW, modelOverrideReq)
+	if modelOverrideW.Code != http.StatusOK {
+		t.Fatalf("expected 200 model override, got %d body=%s", modelOverrideW.Code, modelOverrideW.Body.String())
+	}
+	var backendState runtimeorchestrator.OrchestratorAgentState
+	if err := json.NewDecoder(modelOverrideW.Body).Decode(&backendState); err != nil {
+		t.Fatalf("decode backend state: %v", err)
+	}
+	if backendState.AgentID != "backend" {
+		t.Fatalf("expected backend agent, got %q", backendState.AgentID)
+	}
+	if backendState.Model.Provider != "nim" {
+		t.Fatalf("expected model provider nim, got %q", backendState.Model.Provider)
+	}
+
+	pauseReq := httptest.NewRequest(http.MethodPost, "/api/v1/orchestrator/sessions/"+created.ID+"/pause", bytes.NewBufferString(`{"reason":"manual guardrail"}`))
+	pauseReq.Header.Set("Content-Type", "application/json")
+	pauseW := httptest.NewRecorder()
+	server.Handler().ServeHTTP(pauseW, pauseReq)
+	if pauseW.Code != http.StatusOK {
+		t.Fatalf("expected 200 pause, got %d body=%s", pauseW.Code, pauseW.Body.String())
+	}
+	var paused runtimeorchestrator.OrchestratorSession
+	if err := json.NewDecoder(pauseW.Body).Decode(&paused); err != nil {
+		t.Fatalf("decode paused session: %v", err)
+	}
+	if paused.Status != runtimeorchestrator.OrchestratorSessionStatusPaused {
+		t.Fatalf("expected paused status, got %q", paused.Status)
+	}
+	if !paused.Guardrails.Paused {
+		t.Fatalf("expected guardrail paused=true")
+	}
+
+	resumeReq := httptest.NewRequest(http.MethodPost, "/api/v1/orchestrator/sessions/"+created.ID+"/resume", nil)
+	resumeW := httptest.NewRecorder()
+	server.Handler().ServeHTTP(resumeW, resumeReq)
+	if resumeW.Code != http.StatusOK {
+		t.Fatalf("expected 200 resume, got %d body=%s", resumeW.Code, resumeW.Body.String())
+	}
+	var resumed runtimeorchestrator.OrchestratorSession
+	if err := json.NewDecoder(resumeW.Body).Decode(&resumed); err != nil {
+		t.Fatalf("decode resumed session: %v", err)
+	}
+	if resumed.Status != runtimeorchestrator.OrchestratorSessionStatusActive {
+		t.Fatalf("expected active status after resume, got %q", resumed.Status)
+	}
+
+	killReq := httptest.NewRequest(http.MethodPost, "/api/v1/orchestrator/sessions/"+created.ID+"/kill", nil)
+	killW := httptest.NewRecorder()
+	server.Handler().ServeHTTP(killW, killReq)
+	if killW.Code != http.StatusOK {
+		t.Fatalf("expected 200 kill, got %d body=%s", killW.Code, killW.Body.String())
+	}
+	var killed runtimeorchestrator.OrchestratorSession
+	if err := json.NewDecoder(killW.Body).Decode(&killed); err != nil {
+		t.Fatalf("decode killed session: %v", err)
+	}
+	if killed.Status != runtimeorchestrator.OrchestratorSessionStatusKilled {
+		t.Fatalf("expected killed status, got %q", killed.Status)
+	}
+}
+
+func TestParseOrchestratorEventCursor(t *testing.T) {
+	tests := []struct {
+		name    string
+		payload map[string]string
+		want    int64
+	}{
+		{
+			name:    "empty payload",
+			payload: nil,
+			want:    0,
+		},
+		{
+			name: "cursor field",
+			payload: map[string]string{
+				"cursor": "17",
+			},
+			want: 17,
+		},
+		{
+			name: "message cursor fallback",
+			payload: map[string]string{
+				"message_cursor": "9",
+			},
+			want: 9,
+		},
+		{
+			name: "invalid cursor uses message cursor fallback",
+			payload: map[string]string{
+				"cursor":         "abc",
+				"message_cursor": "11",
+			},
+			want: 11,
+		},
+		{
+			name: "both values invalid",
+			payload: map[string]string{
+				"cursor":         "abc",
+				"message_cursor": "def",
+			},
+			want: 0,
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			if got := parseOrchestratorEventCursor(tc.payload); got != tc.want {
+				t.Fatalf("expected %d, got %d", tc.want, got)
+			}
+		})
+	}
+}
+
+func TestParseBoundedIntQuery(t *testing.T) {
+	tests := []struct {
+		name     string
+		raw      string
+		fallback int
+		min      int
+		max      int
+		want     int
+	}{
+		{name: "valid value", raw: "12", fallback: 20, min: 1, max: 200, want: 12},
+		{name: "invalid uses fallback", raw: "oops", fallback: 20, min: 1, max: 200, want: 20},
+		{name: "below min clamped", raw: "-5", fallback: 20, min: 1, max: 200, want: 1},
+		{name: "above max clamped", raw: "999", fallback: 20, min: 1, max: 200, want: 200},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			if got := parseBoundedIntQuery(tc.raw, tc.fallback, tc.min, tc.max); got != tc.want {
+				t.Fatalf("expected %d, got %d", tc.want, got)
+			}
+		})
+	}
+}
+
+func TestParseNonNegativeInt64Query(t *testing.T) {
+	tests := []struct {
+		name string
+		raw  string
+		want int64
+	}{
+		{name: "positive", raw: "42", want: 42},
+		{name: "zero", raw: "0", want: 0},
+		{name: "negative clamped", raw: "-7", want: 0},
+		{name: "invalid clamped", raw: "abc", want: 0},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			if got := parseNonNegativeInt64Query(tc.raw); got != tc.want {
+				t.Fatalf("expected %d, got %d", tc.want, got)
+			}
+		})
+	}
+}
+
+func TestOrchestratorSessionStreamReturnsNotFoundForUnknownSession(t *testing.T) {
+	server, _, _, _ := setupTestServer(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/orchestrator/sessions/unknown-session/stream", nil)
+	w := httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for unknown session stream, got %d body=%s", w.Code, w.Body.String())
 	}
 }
 
@@ -911,6 +1295,155 @@ func TestSSEEndpointStreamsLiveTypedAndMessageFrames(t *testing.T) {
 	}
 	if !strings.Contains(body, "event: message") {
 		t.Fatalf("expected live compatibility message frame, body=%s", body)
+	}
+}
+
+func TestOrchestratorSessionStreamReplaysEventsAfterCursor(t *testing.T) {
+	server, _, _, _ := setupTestServer(t)
+
+	createReq := httptest.NewRequest(http.MethodPost, "/api/v1/orchestrator/sessions", bytes.NewBufferString(`{"project_id":"biometrics"}`))
+	createReq.Header.Set("Content-Type", "application/json")
+	createW := httptest.NewRecorder()
+	server.Handler().ServeHTTP(createW, createReq)
+	if createW.Code != http.StatusCreated {
+		t.Fatalf("expected 201 create, got %d body=%s", createW.Code, createW.Body.String())
+	}
+
+	var session runtimeorchestrator.OrchestratorSession
+	if err := json.NewDecoder(createW.Body).Decode(&session); err != nil {
+		t.Fatalf("decode session: %v", err)
+	}
+	if strings.TrimSpace(session.ID) == "" {
+		t.Fatalf("expected session id")
+	}
+
+	older, err := server.bus.Publish(contracts.Event{
+		RunID:  session.ID,
+		Type:   "orchestrator.agent.triggered",
+		Source: "test",
+		Payload: map[string]string{
+			"cursor": "2",
+		},
+	})
+	if err != nil {
+		t.Fatalf("publish older event: %v", err)
+	}
+	newer, err := server.bus.Publish(contracts.Event{
+		RunID:  session.ID,
+		Type:   "orchestrator.agent.job.started",
+		Source: "test",
+		Payload: map[string]string{
+			"cursor": "7",
+		},
+	})
+	if err != nil {
+		t.Fatalf("publish newer event: %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	streamReq := httptest.NewRequest(
+		http.MethodGet,
+		"/api/v1/orchestrator/sessions/"+session.ID+"/stream?cursor=3&limit=20",
+		nil,
+	).WithContext(ctx)
+	streamW := httptest.NewRecorder()
+	done := make(chan struct{})
+	go func() {
+		server.Handler().ServeHTTP(streamW, streamReq)
+		close(done)
+	}()
+
+	time.Sleep(120 * time.Millisecond)
+	cancel()
+	<-done
+
+	body := streamW.Body.String()
+	if strings.Contains(body, "id: "+older.ID) {
+		t.Fatalf("expected cursor filter to skip older event id=%s body=%s", older.ID, body)
+	}
+	if !strings.Contains(body, "id: "+newer.ID) {
+		t.Fatalf("expected cursor filter to include newer event id=%s body=%s", newer.ID, body)
+	}
+	if !strings.Contains(body, "event: orchestrator.agent.job.started") {
+		t.Fatalf("expected typed orchestrator event frame, body=%s", body)
+	}
+}
+
+func TestOrchestratorSessionStreamCursorFallbackUsesMessageCursor(t *testing.T) {
+	server, _, _, _ := setupTestServer(t)
+
+	createReq := httptest.NewRequest(http.MethodPost, "/api/v1/orchestrator/sessions", bytes.NewBufferString(`{"project_id":"biometrics"}`))
+	createReq.Header.Set("Content-Type", "application/json")
+	createW := httptest.NewRecorder()
+	server.Handler().ServeHTTP(createW, createReq)
+	if createW.Code != http.StatusCreated {
+		t.Fatalf("expected 201 create, got %d body=%s", createW.Code, createW.Body.String())
+	}
+
+	var session runtimeorchestrator.OrchestratorSession
+	if err := json.NewDecoder(createW.Body).Decode(&session); err != nil {
+		t.Fatalf("decode session: %v", err)
+	}
+
+	published, err := server.bus.Publish(contracts.Event{
+		RunID:  session.ID,
+		Type:   "orchestrator.message.created",
+		Source: "test",
+		Payload: map[string]string{
+			"cursor":         "invalid",
+			"message_cursor": "11",
+		},
+	})
+	if err != nil {
+		t.Fatalf("publish message event: %v", err)
+	}
+
+	// Cursor below message_cursor should still replay this event.
+	{
+		ctx, cancel := context.WithCancel(context.Background())
+		streamReq := httptest.NewRequest(
+			http.MethodGet,
+			"/api/v1/orchestrator/sessions/"+session.ID+"/stream?cursor=10&limit=20",
+			nil,
+		).WithContext(ctx)
+		streamW := httptest.NewRecorder()
+		done := make(chan struct{})
+		go func() {
+			server.Handler().ServeHTTP(streamW, streamReq)
+			close(done)
+		}()
+
+		time.Sleep(120 * time.Millisecond)
+		cancel()
+		<-done
+
+		if body := streamW.Body.String(); !strings.Contains(body, "id: "+published.ID) {
+			t.Fatalf("expected fallback cursor replay for event id=%s body=%s", published.ID, body)
+		}
+	}
+
+	// Cursor equal to message_cursor should skip this event.
+	{
+		ctx, cancel := context.WithCancel(context.Background())
+		streamReq := httptest.NewRequest(
+			http.MethodGet,
+			"/api/v1/orchestrator/sessions/"+session.ID+"/stream?cursor=11&limit=20",
+			nil,
+		).WithContext(ctx)
+		streamW := httptest.NewRecorder()
+		done := make(chan struct{})
+		go func() {
+			server.Handler().ServeHTTP(streamW, streamReq)
+			close(done)
+		}()
+
+		time.Sleep(120 * time.Millisecond)
+		cancel()
+		<-done
+
+		if body := streamW.Body.String(); strings.Contains(body, "id: "+published.ID) {
+			t.Fatalf("expected event to be filtered at cursor boundary id=%s body=%s", published.ID, body)
+		}
 	}
 }
 

@@ -1,0 +1,6 @@
+{
+  "index": "Install Hub",
+  "macos": "macOS",
+  "linux": "Linux",
+  "windows-wsl": "Windows (WSL)"
+}

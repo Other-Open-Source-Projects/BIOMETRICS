@@ -28,7 +28,7 @@ LDFLAGS := -ldflags "-s -w \
 GO := go
 GO_VERSION := 1.24.0
 GO_MODULES := ./...
-CMD_PATH := ./cmd/biometrics
+CMD_PATH := ./cmd/controlplane
 PKG_PATH := ./pkg/...
 
 # Binary configuration
@@ -54,7 +54,7 @@ TOOLS := $(GOLANGCI_LINT) $(GOTESTSUM) $(GOIMPORTS) $(GOFUMPT)
 # DIRECTORIES
 # -----------------------------------------------------------------------------
 SRC_DIRS := ./cmd ./pkg ./global ./local
-TEST_DIRS := ./pkg/... ./cmd/...
+TEST_DIRS := ./cmd/controlplane ./cmd/biometrics ./internal/api/http ./internal/blueprints ./internal/controlplane ./internal/policy ./internal/runtime/... ./internal/store/sqlite ./internal/planning
 BENCHMARK_DIR := ./benchmarks
 COVERAGE_DIR := coverage
 REPORTS_DIR := reports

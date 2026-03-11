@@ -1,0 +1,26 @@
+---
+title: Install on Linux
+description: Linux install and validation flow for BIOMETRICS.
+---
+
+import { VerifyBlock } from '../../components/VerifyBlock'
+
+## Install
+
+```bash
+git clone <your-repo-url> BIOMETRICS
+cd BIOMETRICS
+./biometrics-onboard --non-interactive --yes
+```
+
+<VerifyBlock title="Verify onboarding report" expected="status=ok or warnings only">
+Check `.biometrics/onboard/report.json` and resolve any blocker.
+</VerifyBlock>
+
+## Start and verify
+
+```bash
+cd biometrics-cli
+go run ./cmd/controlplane
+curl -fsS http://127.0.0.1:59013/health/ready
+```

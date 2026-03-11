@@ -3,6 +3,7 @@ package orchestrator
 import (
 	"biometrics-cli/internal/heartbeat"
 	"biometrics-cli/internal/metrics"
+	"biometrics-cli/internal/paths"
 	"context"
 	"fmt"
 	"path/filepath"
@@ -246,7 +247,7 @@ func (mpo *MultiProjectOrchestrator) DiscoverProjects(basePath string) error {
 
 	for _, dir := range projectsDir {
 		projectName := filepath.Base(dir)
-		planPath := filepath.Join("/Users/jeremy/.sisyphus/plans", projectName)
+		planPath := paths.SisyphusPlansDir(projectName)
 
 		if err := mpo.RegisterProject(projectName, dir, planPath, 1); err != nil {
 			continue

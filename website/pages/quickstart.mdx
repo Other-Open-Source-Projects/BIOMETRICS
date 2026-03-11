@@ -1,0 +1,103 @@
+---
+title: Quickstart (5-10 min)
+description: Install BIOMETRICS, run your first control-plane run, and verify success.
+---
+
+import { CommandTabs } from '../components/CommandTabs'
+import { VerifyBlock } from '../components/VerifyBlock'
+import { SuccessChecklist } from '../components/SuccessChecklist'
+import { LocaleSwitch } from '../components/LocaleSwitch'
+
+<LocaleSwitch enPath="/quickstart" dePath="/de/quickstart" />
+
+<div className="flow-hero">
+  <span className="flow-kicker">Operator fast lane</span>
+  <h2>From clone to first controlled run in three gates.</h2>
+  <p>
+    This path is designed for engineering leaders: every phase has a clear command set, explicit verification, and a
+    definition of done.
+  </p>
+  <div className="flow-badges">
+    <span>Gate 1: Onboard</span>
+    <span>Gate 2: Health</span>
+    <span>Gate 3: Run Evidence</span>
+  </div>
+</div>
+
+<div className="flow-grid">
+  <a className="flow-card" href="#step-1">
+    <strong>Step 1</strong>
+    <h3>Clone and onboard</h3>
+    <p>Install dependencies and generate a clean onboarding report.</p>
+  </a>
+  <a className="flow-card" href="#step-2">
+    <strong>Step 2</strong>
+    <h3>Start control plane</h3>
+    <p>Launch runtime services and verify health before run creation.</p>
+  </a>
+  <a className="flow-card" href="#step-3">
+    <strong>Step 3</strong>
+    <h3>Create first run</h3>
+    <p>Create a run and confirm orchestration artifacts are visible.</p>
+  </a>
+</div>
+
+<h2 id="step-1">Step 1: Clone and onboard</h2>
+
+<CommandTabs
+  macos={`git clone <your-repo-url> BIOMETRICS\ncd BIOMETRICS\n./biometrics-onboard`}
+  linux={`git clone <your-repo-url> BIOMETRICS\ncd BIOMETRICS\n./biometrics-onboard`}
+  windowsWSL={`git clone <your-repo-url> BIOMETRICS\ncd BIOMETRICS\n./biometrics-onboard`}
+/>
+
+<VerifyBlock title="Verify onboarding output" expected="ready=true" testID="verify-onboarding">
+  Run <code>cat .biometrics/onboard/report.json</code> and confirm no blocking failures.
+</VerifyBlock>
+
+<h2 id="step-2">Step 2: Start control plane</h2>
+
+<CommandTabs
+  macos={`cd biometrics-cli\ngo run ./cmd/controlplane`}
+  linux={`cd biometrics-cli\ngo run ./cmd/controlplane`}
+  windowsWSL={`cd biometrics-cli\ngo run ./cmd/controlplane`}
+/>
+
+<VerifyBlock title="Verify health" expected='{"status":"ok"}' testID="verify-health">
+  In another terminal, run <code>curl -fsS http://127.0.0.1:59013/health</code>.
+</VerifyBlock>
+
+<h2 id="step-3">Step 3: Start first run</h2>
+
+<CommandTabs
+  macos={`curl -fsS -X POST http://127.0.0.1:59013/api/v1/runs \\\n  -H "Content-Type: application/json" \\\n  -d '{"project_id":"biometrics","goal":"quickstart run","mode":"autonomous"}'`}
+  linux={`curl -fsS -X POST http://127.0.0.1:59013/api/v1/runs \\\n  -H "Content-Type: application/json" \\\n  -d '{"project_id":"biometrics","goal":"quickstart run","mode":"autonomous"}'`}
+  windowsWSL={`curl -fsS -X POST http://127.0.0.1:59013/api/v1/runs \\\n  -H "Content-Type: application/json" \\\n  -d '{"project_id":"biometrics","goal":"quickstart run","mode":"autonomous"}'`}
+/>
+
+<VerifyBlock title="Verify run id" expected='"id":"run-..."' testID="verify-run-id">
+  Response must include a non-empty run ID and an initial status.
+</VerifyBlock>
+
+<div className="ops-note">
+  <h3>Operator note</h3>
+  <p>
+    For production-like environments, capture event and graph evidence after first run creation. This baseline is
+    required for incident and regression analysis.
+  </p>
+</div>
+
+## Definition of done (quickstart)
+
+<SuccessChecklist
+  items={[
+    'Onboarding finished without blocking failures.',
+    'Control plane health endpoint returns status=ok.',
+    'A run can be created through /api/v1/runs.',
+    'Tasks endpoint for that run returns at least one task.'
+  ]}
+/>
+
+## Continue
+
+- [Install details by OS](/install)
+- [Production operations runbook](/docs/runbooks/production-operations)

@@ -1,8 +1,11 @@
 package state
 
 import (
+	"biometrics-cli/internal/paths"
 	"database/sql"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 )
@@ -27,7 +30,8 @@ var GlobalState = &AppState{
 }
 
 func (s *AppState) InitDB() {
-	dbPath := "/Users/jeremy/.sisyphus/logs.db"
+	dbPath := paths.SisyphusDBPath("logs.db")
+	_ = os.MkdirAll(filepath.Dir(dbPath), 0755)
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return

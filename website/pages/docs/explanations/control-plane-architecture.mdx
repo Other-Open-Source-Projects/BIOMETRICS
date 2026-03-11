@@ -1,0 +1,13 @@
+---
+title: Explanation - Control-plane Architecture
+description: How BIOMETRICS composes scheduler, orchestrator, evaluator, and optimizer.
+---
+
+BIOMETRICS separates concerns across layers:
+
+1. **Runtime scheduler** for task dispatch and execution lifecycle.
+2. **Orchestrator** for strategy and policy-driven run control.
+3. **Eval service** for deterministic validation against benchmark suites.
+4. **Optimizer** for recommendation generation (shadow + manual apply).
+
+This separation enables non-breaking evolution while preserving API contract stability.

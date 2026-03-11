@@ -1,0 +1,49 @@
+---
+title: Installation (DE)
+description: Betriebssystem-spezifische Installation und Verifikation.
+---
+
+import { LocaleSwitch } from '../../components/LocaleSwitch'
+
+<LocaleSwitch enPath="/install" dePath="/de/install" />
+
+<div className="flow-hero">
+  <span className="flow-kicker">Platform decision</span>
+  <h2>Wähle den stabilsten Installationspfad für dein Betriebssystem.</h2>
+  <p>
+    Alle Pfade führen auf dasselbe Ziel: eine gesunde Control Plane und einen reproduzierbaren ersten Run.
+  </p>
+</div>
+
+<div className="platform-grid">
+  <a className="platform-card" href="/install/macos">
+    <h3>macOS</h3>
+    <p>Nativer Developer-Setup mit verifiziertem Onboarding.</p>
+    <strong>macOS öffnen</strong>
+  </a>
+  <a className="platform-card" href="/install/linux">
+    <h3>Linux</h3>
+    <p>Server-freundlicher Installationspfad mit klaren Verify-Schritten.</p>
+    <strong>Linux öffnen</strong>
+  </a>
+  <a className="platform-card" href="/install/windows-wsl">
+    <h3>Windows (WSL)</h3>
+    <p>WSL-basierter Ablauf mit Linux-kompatibler Runtime-Verifikation.</p>
+    <strong>WSL öffnen</strong>
+  </a>
+</div>
+
+## Gemeinsame Pre-Flight-Checks
+
+1. Git ist installiert und im PATH.
+2. Go >= 1.24 ist verfügbar.
+3. Node >= 20 ist verfügbar.
+4. Port `59013` kann lokal gebunden werden.
+
+## Verifikation
+
+```bash
+curl -fsS http://127.0.0.1:59013/health/ready
+```
+
+Erwartet: `"ready":true`.

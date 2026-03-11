@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biometrics.dev/contracts/model.schema.json",
+  "title": "ModelCatalog",
+  "type": "object",
+  "required": ["default_primary", "default_chain", "providers"],
+  "properties": {
+    "default_primary": { "type": "string", "minLength": 1 },
+    "default_chain": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "providers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "status", "default", "available"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "name": { "type": "string", "minLength": 1 },
+          "status": { "type": "string", "minLength": 1 },
+          "default": { "type": "boolean" },
+          "available": { "type": "boolean" },
+          "model_id": { "type": "string" },
+          "description": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

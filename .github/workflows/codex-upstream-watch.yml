@@ -1,0 +1,32 @@
+name: Codex Upstream Watch
+
+on:
+  schedule:
+    - cron: "45 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-upstream-lag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate codex upstream lag window
+        run: |
+          python3 scripts/upstream/check_codex_upstream.py \
+            --lockfile third_party/codex-upstream/upstream.lock.json \
+            --max-lag-days 7 \
+            --tag-prefix rust-v \
+            --summary-file /tmp/codex-upstream-summary.md
+
+      - name: Publish upstream summary
+        if: always()
+        run: |
+          if [[ -f /tmp/codex-upstream-summary.md ]]; then
+            cat /tmp/codex-upstream-summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi

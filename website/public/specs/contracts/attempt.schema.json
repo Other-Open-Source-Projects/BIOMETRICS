@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biometrics.dev/contracts/attempt.schema.json",
+  "title": "TaskAttempt",
+  "type": "object",
+  "required": [
+    "id",
+    "run_id",
+    "task_id",
+    "agent",
+    "status",
+    "started_at",
+    "finished_at"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "task_id": { "type": "string", "minLength": 1 },
+    "agent": { "type": "string", "minLength": 1 },
+    "status": { "type": "string", "minLength": 1 },
+    "log": { "type": "string" },
+    "error": { "type": "string" },
+    "provider": { "type": "string" },
+    "model_id": { "type": "string" },
+    "fallback_index": { "type": "integer", "minimum": 0 },
+    "latency_ms": { "type": "integer", "minimum": 0 },
+    "tokens_in": { "type": "integer", "minimum": 0 },
+    "tokens_out": { "type": "integer", "minimum": 0 },
+    "provider_trail": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["provider", "status"],
+        "properties": {
+          "provider": { "type": "string", "minLength": 1 },
+          "model_id": { "type": "string" },
+          "status": { "type": "string", "minLength": 1 },
+          "error_class": { "type": "string" },
+          "error_message": { "type": "string" },
+          "latency_ms": { "type": "integer", "minimum": 0 },
+          "fallback_index": { "type": "integer", "minimum": 0 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "started_at": { "type": "string", "format": "date-time" },
+    "finished_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

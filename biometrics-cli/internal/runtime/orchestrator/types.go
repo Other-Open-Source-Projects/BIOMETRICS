@@ -229,3 +229,83 @@ type Capabilities struct {
 	AuditTrail       bool     `json:"audit_trail"`
 	IdempotentStepID bool     `json:"idempotent_step_ids"`
 }
+
+const (
+	OrchestratorPaneAll          = "all"
+	OrchestratorPaneBackend      = "backend"
+	OrchestratorPaneFrontend     = "frontend"
+	OrchestratorPaneOrchestrator = "orchestrator"
+
+	OrchestratorAuthorKindUser   = "user"
+	OrchestratorAuthorKindAgent  = "agent"
+	OrchestratorAuthorKindSystem = "system"
+
+	OrchestratorSessionStatusActive = "active"
+	OrchestratorSessionStatusPaused = "paused"
+	OrchestratorSessionStatusKilled = "killed"
+)
+
+type OrchestratorAgentModel struct {
+	Provider string `json:"provider"`
+	ModelID  string `json:"model_id"`
+}
+
+type OrchestratorAgentState struct {
+	SessionID     string                 `json:"session_id"`
+	AgentID       string                 `json:"agent_id"`
+	Status        string                 `json:"status"`
+	Model         OrchestratorAgentModel `json:"model"`
+	CooldownUntil *time.Time             `json:"cooldown_until,omitempty"`
+	LastError     string                 `json:"last_error,omitempty"`
+	LastActiveAt  *time.Time             `json:"last_active_at,omitempty"`
+	CreatedAt     time.Time              `json:"created_at"`
+	UpdatedAt     time.Time              `json:"updated_at"`
+}
+
+type OrchestratorGuardrailState struct {
+	Paused bool   `json:"paused"`
+	Reason string `json:"reason,omitempty"`
+}
+
+type OrchestratorSession struct {
+	ID          string                     `json:"id"`
+	ProjectID   string                     `json:"project_id"`
+	Status      string                     `json:"status"`
+	Guardrails  OrchestratorGuardrailState `json:"guardrails"`
+	MaxJobs     int                        `json:"max_jobs"`
+	JobsStarted int                        `json:"jobs_started"`
+	Agents      []OrchestratorAgentState   `json:"agents"`
+	CreatedAt   time.Time                  `json:"created_at"`
+	UpdatedAt   time.Time                  `json:"updated_at"`
+	PausedAt    *time.Time                 `json:"paused_at,omitempty"`
+	KilledAt    *time.Time                 `json:"killed_at,omitempty"`
+}
+
+type OrchestratorMessage struct {
+	ID         string    `json:"id"`
+	Cursor     int64     `json:"cursor"`
+	SessionID  string    `json:"session_id"`
+	AuthorKind string    `json:"author_kind"`
+	AuthorID   string    `json:"author_id"`
+	TargetPane string    `json:"target_pane"`
+	Content    string    `json:"content"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+type OrchestratorSessionCreateRequest struct {
+	ProjectID   string                            `json:"project_id,omitempty"`
+	MaxJobs     int                               `json:"max_jobs,omitempty"`
+	AgentModels map[string]OrchestratorAgentModel `json:"agent_models,omitempty"`
+}
+
+type OrchestratorMessageAppendRequest struct {
+	AuthorKind string `json:"author_kind,omitempty"`
+	AuthorID   string `json:"author_id,omitempty"`
+	TargetPane string `json:"target_pane,omitempty"`
+	Content    string `json:"content"`
+}
+
+type OrchestratorAgentModelOverrideRequest struct {
+	Provider string `json:"provider"`
+	ModelID  string `json:"model_id"`
+}

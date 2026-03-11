@@ -3,12 +3,14 @@ package swarm
 import (
 	"context"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"time"
 
 	"biometrics-cli/internal/collision"
 	"biometrics-cli/internal/git"
 	"biometrics-cli/internal/opencode"
+	"biometrics-cli/internal/paths"
 	"biometrics-cli/internal/project"
 	"biometrics-cli/internal/prompt"
 	"biometrics-cli/internal/quality"
@@ -35,7 +37,7 @@ func (d *Dispatcher) Dispatch(globalCtx context.Context, projID string, task *pr
 	go func() {
 		// 1. Eigener Context mit TraceID und Watchdog (z.B. 45 Minuten Timeout)
 		_, traceID := telemetry.InjectTraceID(context.Background())
-		watchdogCtx, cancel := recovery.StartWatchdog(d.logger, task.ID, 45*time.Minute)
+		watchdogCtx, cancel := recovery.StartWatchdog(d.logger, task.ID, readWatchdogTimeout())
 		defer cancel()
 
 		d.logger.Info("Swarm Agent Dispatched", slog.String("project", projID), slog.String("task_id", task.ID), slog.String("trace_id", traceID))
@@ -74,8 +76,20 @@ func (d *Dispatcher) Dispatch(globalCtx context.Context, projID string, task *pr
 		project.MarkTaskCompleted(projID, task.ID)
 		d.logger.Info("Task completed successfully", slog.String("task_id", task.ID))
 
-		// Projekt-Pfad ermitteln (vereinfacht: /Users/jeremy/dev/PROJEKTNAME)
-		projectPath := filepath.Join("/Users/jeremy/dev", projID)
+		// Projekt-Pfad ermitteln (default: $HOME/dev/<PROJEKTNAME>, override: BIOMETRICS_PROJECTS_DIR)
+		projectPath := filepath.Join(paths.ProjectsDir(), projID)
 		git.AutoCommit(watchdogCtx, d.logger, projectPath, task.ID)
 	}()
+}
+
+func readWatchdogTimeout() time.Duration {
+	raw := os.Getenv("BIOMETRICS_WATCHDOG_TIMEOUT")
+	if raw == "" {
+		return 0
+	}
+	d, err := time.ParseDuration(raw)
+	if err != nil {
+		return 0
+	}
+	return d
 }

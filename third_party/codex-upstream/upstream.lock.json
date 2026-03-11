@@ -1,0 +1,9 @@
+{
+  "include_prereleases": false,
+  "last_checked_at": "2026-02-26T20:59:27Z",
+  "max_release_lag_days": 7,
+  "source_repo": "openai/codex",
+  "tag_prefix": "rust-v",
+  "tracked_release_published_at": "2026-02-25T17:21:45Z",
+  "tracked_release_tag": "rust-v0.105.0"
+}

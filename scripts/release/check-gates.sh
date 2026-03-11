@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CLI_DIR="${ROOT_DIR}/biometrics-cli"
 WEB_DIR="${CLI_DIR}/web-v3"
+WEBSITE_DIR="${ROOT_DIR}/website"
 
 log() {
   printf '[gate-check] %s\n' "$*"
@@ -121,9 +122,34 @@ require_file "${ROOT_DIR}/scripts/release/run-ga-closure-program.sh"
 require_file "${ROOT_DIR}/scripts/release/append-execution-log.sh"
 require_file "${ROOT_DIR}/biometrics-onboard"
 require_file "${ROOT_DIR}/biometrics-cli/web-v3/playwright.config.ts"
+require_file "${ROOT_DIR}/biometrics-cli/web-v3/pnpm-lock.yaml"
 require_file "${ROOT_DIR}/biometrics-cli/web-v3/tests/e2e/visual.spec.ts"
 require_file "${ROOT_DIR}/biometrics-cli/web-v3/tests/e2e/visual.spec.ts-snapshots/shell-baseline-darwin.png"
 require_file "${ROOT_DIR}/biometrics-cli/web-v3/tests/e2e/visual.spec.ts-snapshots/graph-fallback-baseline-darwin.png"
+require_file "${ROOT_DIR}/website/package.json"
+require_file "${ROOT_DIR}/website/pnpm-lock.yaml"
+require_file "${ROOT_DIR}/website/wrangler.toml"
+require_file "${ROOT_DIR}/website/next.config.mjs"
+require_file "${ROOT_DIR}/website/theme.config.tsx"
+require_file "${ROOT_DIR}/website/pages/index.mdx"
+require_file "${ROOT_DIR}/website/pages/quickstart.mdx"
+require_file "${ROOT_DIR}/website/pages/install/index.mdx"
+require_file "${ROOT_DIR}/website/pages/docs/index.mdx"
+require_file "${ROOT_DIR}/website/pages/de/index.mdx"
+require_file "${ROOT_DIR}/website/public/sitemap.xml"
+require_file "${ROOT_DIR}/website/public/robots.txt"
+require_file "${ROOT_DIR}/website/public/_headers"
+require_file "${ROOT_DIR}/website/playwright.config.ts"
+
+log "Enforcing pnpm-only lockfile policy for web surfaces"
+if [[ -f "${ROOT_DIR}/biometrics-cli/web-v3/package-lock.json" ]]; then
+  echo "Legacy npm lockfile detected: biometrics-cli/web-v3/package-lock.json" >&2
+  exit 1
+fi
+if [[ -f "${ROOT_DIR}/website/package-lock.json" ]]; then
+  echo "Legacy npm lockfile detected: website/package-lock.json" >&2
+  exit 1
+fi
 
 log "Checking that soak report references raw evidence"
 if ! grep -q 'logs/soak/' "${ROOT_DIR}/docs/releases/SOAK_72H_REPORT.md"; then
@@ -186,18 +212,34 @@ log "Running onboarding non-mutation doctor smoke tests"
 )
 
 log "Running web build (zero-warning core gate)"
-require_tool npm
+require_tool pnpm
 (
   cd "${WEB_DIR}"
-  if [[ ! -d node_modules ]]; then
-    npm ci
+  if command -v corepack >/dev/null 2>&1; then
+    corepack enable
+  else
+    echo "corepack not found; continuing because pnpm is available (local-only deviation)" >&2
   fi
-  npm run build 2>&1 | tee /tmp/biometrics-web-build.log
+  pnpm install --frozen-lockfile
+  pnpm run build 2>&1 | tee /tmp/biometrics-web-build.log
 )
 if grep -q '^warn - ' /tmp/biometrics-web-build.log; then
   echo "Core web build warnings are not allowed" >&2
   exit 1
 fi
+
+log "Running public website build and content checks"
+(
+  cd "${WEBSITE_DIR}"
+  if command -v corepack >/dev/null 2>&1; then
+    corepack enable
+  else
+    echo "corepack not found; continuing because pnpm is available (local-only deviation)" >&2
+  fi
+  pnpm install --frozen-lockfile
+  pnpm run build
+  pnpm run test:content
+)
 
 log "Checking for active legacy V2 references"
 pattern='cmd/api-server|cmd/orchestrator|cmd/tui|cmd/agent-loop|biometrics-cli/web-ui|/api/v0|/api/v2|oh-my-opencode\.json'
@@ -209,7 +251,7 @@ while IFS= read -r -d '' file; do
     echo "Legacy reference in ${file}" >&2
     found=1
   fi
-done < <(cd "${ROOT_DIR}" && git ls-files -z README.md OPENCODE.md docs rules templates/blueprints Makefile biometrics-onboard biometrics-cli/cmd/controlplane biometrics-cli/cmd/biometrics biometrics-cli/cmd/onboard biometrics-cli/internal biometrics-cli/web-v3/src)
+done < <(cd "${ROOT_DIR}" && git ls-files -z README.md OPENCODE.md docs rules templates/blueprints Makefile biometrics-onboard biometrics-cli/cmd/controlplane biometrics-cli/cmd/biometrics biometrics-cli/cmd/onboard biometrics-cli/internal biometrics-cli/web-v3/src website)
 
 if [[ "${found}" -ne 0 ]]; then
   echo "Legacy V2 references found in active files" >&2
@@ -230,7 +272,7 @@ while IFS= read -r -d '' file; do
     printf '%s\n' "${filtered_matches}" >&2
     found=1
   fi
-done < <(cd "${ROOT_DIR}" && git ls-files -z README.md OPENCODE.md docs rules scripts .github .env.example Makefile biometrics-onboard biometrics-cli/cmd/controlplane biometrics-cli/cmd/biometrics biometrics-cli/cmd/onboard biometrics-cli/internal biometrics-cli/web-v3/src)
+done < <(cd "${ROOT_DIR}" && git ls-files -z README.md OPENCODE.md docs rules scripts .github .env.example Makefile biometrics-onboard biometrics-cli/cmd/controlplane biometrics-cli/cmd/biometrics biometrics-cli/cmd/onboard biometrics-cli/internal biometrics-cli/web-v3/src website)
 
 if [[ "${found}" -ne 0 ]]; then
   echo "Potential secret detected in tracked files" >&2

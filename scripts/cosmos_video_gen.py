@@ -67,7 +67,14 @@ class CosmosVideoGenerator:
         self.gitlab_token = os.getenv("GITLAB_TOKEN")
         self.gitlab_project_id = os.getenv("GITLAB_MEDIA_PROJECT_ID")
 
-        self.outputs_dir = Path("/Users/jeremy/dev/BIOMETRICS/outputs/videos")
+        workspace = os.getenv("BIOMETRICS_WORKSPACE", "").strip()
+        self.project_root = (
+            Path(workspace).expanduser().resolve()
+            if workspace
+            else Path(__file__).resolve().parents[1]
+        )
+
+        self.outputs_dir = self.project_root / "outputs" / "videos"
         self.outputs_dir.mkdir(parents=True, exist_ok=True)
 
         logger.info("CosmosVideoGenerator initialized successfully")
@@ -356,7 +363,7 @@ Wenn PERFEKT:
         Returns:
             Dictionary with save locations and status
         """
-        metadata_dir = Path("/Users/jeremy/dev/BIOMETRICS/outputs/metadata")
+        metadata_dir = self.project_root / "outputs" / "metadata"
         metadata_dir.mkdir(parents=True, exist_ok=True)
 
         video_file = Path(video_path)
@@ -402,7 +409,7 @@ Wenn PERFEKT:
                 "video_path": "/path/to/video.mp4"
             }
         """
-        log_dir = Path("/Users/jeremy/dev/BIOMETRICS/logs")
+        log_dir = self.project_root / "logs"
         log_dir.mkdir(parents=True, exist_ok=True)
 
         log_file = log_dir / "generation_log.jsonl"

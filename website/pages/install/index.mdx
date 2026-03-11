@@ -1,0 +1,49 @@
+---
+title: Install Hub
+description: Choose your operating system and follow validated install and verify steps.
+---
+
+import { LocaleSwitch } from '../../components/LocaleSwitch'
+
+<LocaleSwitch enPath="/install" dePath="/de/install" />
+
+<div className="flow-hero">
+  <span className="flow-kicker">Platform decision</span>
+  <h2>Pick the shortest reliable path for your operating environment.</h2>
+  <p>
+    All install tracks converge to one objective: a healthy control plane endpoint and a reproducible first run.
+  </p>
+</div>
+
+<div className="platform-grid">
+  <a className="platform-card" href="/install/macos">
+    <h3>macOS</h3>
+    <p>Native developer setup with verified onboarding and health checks.</p>
+    <strong>Open macOS path</strong>
+  </a>
+  <a className="platform-card" href="/install/linux">
+    <h3>Linux</h3>
+    <p>Server-friendly install flow with non-interactive onboarding option.</p>
+    <strong>Open Linux path</strong>
+  </a>
+  <a className="platform-card" href="/install/windows-wsl">
+    <h3>Windows (WSL)</h3>
+    <p>WSL-based flow with Linux-compatible runtime verification.</p>
+    <strong>Open WSL path</strong>
+  </a>
+</div>
+
+## Shared pre-flight checks
+
+1. Git is installed and on PATH.
+2. Go >= 1.24 is available.
+3. Node >= 20 is available for website/web tooling.
+4. You can bind localhost port `59013`.
+
+## Shared verify command
+
+```bash
+curl -fsS http://127.0.0.1:59013/health/ready
+```
+
+Expected key: `"ready":true`.

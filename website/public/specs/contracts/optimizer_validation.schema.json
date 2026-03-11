@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biometrics.dev/contracts/optimizer_validation.schema.json",
+  "title": "OptimizerValidation",
+  "type": "object",
+  "required": [
+    "id",
+    "recommendation_id",
+    "status",
+    "quality_pass",
+    "time_pass",
+    "cost_pass",
+    "regression_pass",
+    "all_pass",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "recommendation_id": { "type": "string", "minLength": 1 },
+    "eval_run_id": { "type": "string" },
+    "status": { "type": "string", "enum": ["pending", "running", "completed", "failed"] },
+    "quality_pass": { "type": "boolean" },
+    "time_pass": { "type": "boolean" },
+    "cost_pass": { "type": "boolean" },
+    "regression_pass": { "type": "boolean" },
+    "all_pass": { "type": "boolean" },
+    "summary": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

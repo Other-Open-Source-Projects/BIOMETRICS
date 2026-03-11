@@ -1778,5 +1778,5 @@ This documentation rules file establishes the comprehensive standards for all BI
 
 ---
 
-*Document: /Users/jeremy/dev/BIOMETRICS/rules/global/documentation-rules.md*
+*Document: rules/global/documentation-rules.md*
 *Total Lines: ~2100*

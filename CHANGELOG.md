@@ -19,7 +19,13 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
 
 ## [Unreleased]
 
-Coming soon...
+### Fixed
+
+- OpenCode CLI drift: all BIOMETRICS subprocess calls now use `opencode run` (compatible with OpenCode `1.2.24`), including health checks (`opencode --version`).
+
+### Changed
+
+- OpenCode execution directory resolution: `BIOMETRICS_OPENCODE_DIR` → `BIOMETRICS_WORKSPACE` → process working directory.
 
 ---
 

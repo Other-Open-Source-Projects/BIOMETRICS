@@ -35,6 +35,8 @@ type Service struct {
 	workspaceRoot string
 	arenaRoot     string
 	memory        *MemoryStore
+	sessionStore  sessionStore
+	background    sessionBackgroundGateway
 
 	mu         sync.RWMutex
 	plans      map[string]Plan
@@ -42,6 +44,9 @@ type Service struct {
 	runInputs  map[string]RunRequest
 	scorecards map[string]Scorecard
 	arenaPaths map[string]map[string]string
+
+	sessionMu      sync.Mutex
+	sessionRuntime map[string]*sessionRuntimeState
 }
 
 func NewService(backend runBackend, bus eventPublisher) *Service {
@@ -49,7 +54,7 @@ func NewService(backend runBackend, bus eventPublisher) *Service {
 	arenaRoot := filepath.Join(workspace, ".biometrics", "arena")
 	_ = os.MkdirAll(arenaRoot, 0o755)
 
-	return &Service{
+	svc := &Service{
 		backend:       backend,
 		bus:           bus,
 		workspaceRoot: workspace,
@@ -60,7 +65,10 @@ func NewService(backend runBackend, bus eventPublisher) *Service {
 		runInputs:     make(map[string]RunRequest),
 		scorecards:    make(map[string]Scorecard),
 		arenaPaths:    make(map[string]map[string]string),
+		sessionRuntime: make(map[string]*sessionRuntimeState),
 	}
+	svc.initSessionDependencies(backend)
+	return svc
 }
 
 func (s *Service) Capabilities() Capabilities {

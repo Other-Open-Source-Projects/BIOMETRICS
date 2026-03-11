@@ -1,0 +1,26 @@
+{
+  "ci": {
+    "collect": {
+      "url": [
+        "http://127.0.0.1:3005/",
+        "http://127.0.0.1:3005/quickstart",
+        "http://127.0.0.1:3005/docs"
+      ],
+      "numberOfRuns": 1,
+      "startServerCommand": "npm run start -- --hostname 127.0.0.1 --port 3005",
+      "startServerReadyPattern": "ready - started server on",
+      "startServerReadyTimeout": 120000
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["warn", { "minScore": 0.9 }],
+        "categories:accessibility": ["warn", { "minScore": 0.95 }],
+        "categories:seo": ["warn", { "minScore": 0.95 }],
+        "uses-http2": "off"
+      }
+    },
+    "upload": {
+      "target": "temporary-public-storage"
+    }
+  }
+}

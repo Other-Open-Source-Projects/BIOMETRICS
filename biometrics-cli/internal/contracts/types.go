@@ -206,13 +206,20 @@ type ProviderAttempt struct {
 }
 
 type ModelProvider struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Status      string `json:"status"`
-	Default     bool   `json:"default"`
-	Available   bool   `json:"available"`
-	ModelID     string `json:"model_id,omitempty"`
-	Description string `json:"description,omitempty"`
+	ID          string        `json:"id"`
+	Name        string        `json:"name"`
+	Status      string        `json:"status"`
+	Default     bool          `json:"default"`
+	Available   bool          `json:"available"`
+	ModelID     string        `json:"model_id,omitempty"`
+	Models      []ModelOption `json:"models,omitempty"`
+	Description string        `json:"description,omitempty"`
+}
+
+type ModelOption struct {
+	ID      string `json:"id"`
+	Name    string `json:"name,omitempty"`
+	Default bool   `json:"default,omitempty"`
 }
 
 type ModelCatalog struct {

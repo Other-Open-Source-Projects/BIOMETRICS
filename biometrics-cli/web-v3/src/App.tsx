@@ -133,6 +133,24 @@ type ModelCatalog = {
   providers: ModelProvider[];
 };
 
+type BackgroundAgentJob = {
+  id: string;
+  project_id: string;
+  agent: string;
+  prompt: string;
+  status: string;
+  model_preference?: string;
+  fallback_chain?: string[];
+  model_id?: string;
+  context_budget?: number;
+  provider?: string;
+  output?: string;
+  error?: string;
+  created_at: string;
+  started_at?: string;
+  finished_at?: string;
+};
+
 type SkillMetadata = {
   name: string;
   description: string;
@@ -275,6 +293,52 @@ type OptimizerApplyResult = {
   run: OrchestratorRun;
 };
 
+type WorkspaceView = "new-thread" | "skills" | "automations" | "orchestrator";
+type OrchestratorPane = "backend" | "frontend" | "orchestrator";
+
+type OrchestratorSessionAgentState = {
+  session_id: string;
+  agent_id: OrchestratorPane;
+  status: "idle" | "running" | "paused" | "error";
+  model: {
+    provider: string;
+    model_id: string;
+  };
+  cooldown_until?: string;
+  last_error?: string;
+  last_active_at?: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type OrchestratorSessionState = {
+  id: string;
+  project_id: string;
+  status: "active" | "paused" | "killed";
+  guardrails: {
+    paused: boolean;
+    reason?: string;
+  };
+  max_jobs: number;
+  jobs_started: number;
+  agents: OrchestratorSessionAgentState[];
+  created_at: string;
+  updated_at: string;
+  paused_at?: string;
+  killed_at?: string;
+};
+
+type OrchestratorSessionMessage = {
+  id: string;
+  cursor: number;
+  session_id: string;
+  author_kind: "user" | "agent" | "system";
+  author_id: "backend" | "frontend" | "orchestrator" | "system" | "user";
+  target_pane: "all" | OrchestratorPane;
+  content: string;
+  created_at: string;
+};
+
 type Tab = "files" | "diff" | "terminal" | "tasks" | "graph";
 type RefreshKey = "tasks" | "runs" | "graph";
 
@@ -347,6 +411,19 @@ const SSE_EVENT_TYPES = [
   "blueprint.bootstrap.completed"
 ] as const;
 
+const ORCHESTRATOR_SESSION_EVENT_TYPES = [
+  "orchestrator.session.created",
+  "orchestrator.session.resumed",
+  "orchestrator.session.killed",
+  "orchestrator.message.created",
+  "orchestrator.agent.triggered",
+  "orchestrator.agent.model.updated",
+  "orchestrator.agent.job.started",
+  "orchestrator.agent.job.completed",
+  "orchestrator.agent.job.failed",
+  "orchestrator.guardrail.paused"
+] as const;
+
 const TABS: TabItem[] = [
   { id: "files", label: "files", icon: "files" },
   { id: "diff", label: "diff", icon: "diff" },
@@ -357,6 +434,7 @@ const TABS: TabItem[] = [
 
 const QUICK_COMMANDS: QuickCommand[] = [
   { label: "run", value: "/run Build hardened release candidate with full verification", icon: "play" },
+  { label: "background", value: "/bg Implement release changelog and commit summary", icon: "play" },
   { label: "orchestrate", value: "/orchestrate Build apex orchestrator run with arena strategy", icon: "orchestrator" },
   { label: "eval", value: "/eval-run", icon: "score" },
   { label: "pause", value: "/pause", icon: "pause" },
@@ -576,6 +654,7 @@ export default function App() {
   const [blueprints, setBlueprints] = useState<BlueprintProfile[]>([]);
   const [modelCatalog, setModelCatalog] = useState<ModelCatalog | null>(null);
   const [skillsCatalog, setSkillsCatalog] = useState<SkillMetadata[]>([]);
+  const [backgroundAgents, setBackgroundAgents] = useState<BackgroundAgentJob[]>([]);
   const [codexAuthReady, setCodexAuthReady] = useState<boolean | null>(null);
   const [orchestratorCapabilities, setOrchestratorCapabilities] = useState<OrchestratorCapabilities | null>(null);
   const [orchestratorRun, setOrchestratorRun] = useState<OrchestratorRun | null>(null);
@@ -590,6 +669,18 @@ export default function App() {
   const [optimizerRecommendations, setOptimizerRecommendations] = useState<OptimizerRecommendation[]>([]);
   const [optimizerActiveID, setOptimizerActiveID] = useState("");
   const [optimizerBusy, setOptimizerBusy] = useState(false);
+  const [workspaceView, setWorkspaceView] = useState<WorkspaceView>("new-thread");
+  const [orchestratorSession, setOrchestratorSession] = useState<OrchestratorSessionState | null>(null);
+  const [orchestratorMessages, setOrchestratorMessages] = useState<OrchestratorSessionMessage[]>([]);
+  const [orchestratorCursor, setOrchestratorCursor] = useState(0);
+  const [backendPaneComposer, setBackendPaneComposer] = useState("");
+  const [frontendPaneComposer, setFrontendPaneComposer] = useState("");
+  const [mainPaneComposer, setMainPaneComposer] = useState("");
+  const [orchestratorPaneModels, setOrchestratorPaneModels] = useState<Record<OrchestratorPane, { provider: string; modelID: string }>>({
+    backend: { provider: "nim", modelID: "qwen-3.5-397b" },
+    frontend: { provider: "gemini", modelID: "google/gemini-3-flash" },
+    orchestrator: { provider: "gemini", modelID: "gemini-3.1-pro-preview" }
+  });
 
   const [selectedProject, setSelectedProject] = useState("biometrics");
   const [selectedRun, setSelectedRun] = useState("");
@@ -618,6 +709,15 @@ export default function App() {
   const eventFlushHandleRef = useRef<number | null>(null);
   const seenEventIDsRef = useRef<Set<string>>(new Set());
   const seenEventOrderRef = useRef<string[]>([]);
+  const orchestratorCursorRef = useRef(0);
+  const orchestratorEventCursorRef = useRef(0);
+  const selectedProjectRef = useRef(selectedProject);
+  const workspaceViewRef = useRef<WorkspaceView>(workspaceView);
+  const orchestratorSessionIDRef = useRef("");
+  const orchestratorStreamRef = useRef<EventSource | null>(null);
+  const orchestratorReconnectTimerRef = useRef<number | null>(null);
+  const orchestratorReconnectAttemptRef = useRef(0);
+  const orchestratorStreamSessionRef = useRef("");
   const refreshTimerRef = useRef<Record<RefreshKey, number | null>>({
     tasks: null,
     runs: null,
@@ -634,8 +734,22 @@ export default function App() {
     () => optimizerRecommendations.find((rec) => rec.id === optimizerActiveID) ?? optimizerRecommendations[0] ?? null,
     [optimizerRecommendations, optimizerActiveID]
   );
+  const orchestratorAgentMap = useMemo(() => {
+    const map: Record<OrchestratorPane, OrchestratorSessionAgentState | null> = {
+      backend: null,
+      frontend: null,
+      orchestrator: null
+    };
+    for (const agent of orchestratorSession?.agents ?? []) {
+      if (agent.agent_id in map) {
+        map[agent.agent_id as OrchestratorPane] = agent;
+      }
+    }
+    return map;
+  }, [orchestratorSession]);
 
   const visibleEvents = useMemo(() => events.slice(-500), [events]);
+  const visibleOrchestratorMessages = useMemo(() => orchestratorMessages.slice(-300), [orchestratorMessages]);
   const supervisionCheckpointEvent = useMemo(() => {
     if (!selectedRunObject || selectedRunObject.mode !== "supervised" || selectedRunObject.status !== "paused") {
       return null;
@@ -717,15 +831,40 @@ export default function App() {
   }, [tasks]);
 
   useEffect(() => {
+    orchestratorCursorRef.current = orchestratorCursor;
+  }, [orchestratorCursor]);
+
+  useEffect(() => {
+    workspaceViewRef.current = workspaceView;
+  }, [workspaceView]);
+
+  useEffect(() => {
+    selectedProjectRef.current = selectedProject;
+  }, [selectedProject]);
+
+  useEffect(() => {
+    orchestratorSessionIDRef.current = orchestratorSession?.id ?? "";
+    orchestratorEventCursorRef.current = 0;
+  }, [orchestratorSession?.id]);
+
+  useEffect(() => {
     void loadProjects();
     void loadRuns();
     void loadBlueprints();
     void loadModels();
     void loadSkills();
+    void loadBackgroundAgents();
     void loadReadiness();
     void loadOrchestratorCapabilities();
     void loadEvalLeaderboard();
     void loadOptimizerRecommendations();
+  }, []);
+
+  useEffect(() => {
+    const handle = window.setInterval(() => {
+      void loadBackgroundAgents();
+    }, 1400);
+    return () => window.clearInterval(handle);
   }, []);
 
   useEffect(() => {
@@ -775,12 +914,61 @@ export default function App() {
   }, [selectedProject]);
 
   useEffect(() => {
+    if (workspaceView !== "orchestrator") {
+      return;
+    }
+    void loadLatestOrchestratorSession(selectedProject);
+  }, [workspaceView, selectedProject]);
+
+  useEffect(() => {
+    if (workspaceView !== "orchestrator" || !orchestratorSession?.id) {
+      stopOrchestratorSessionStream();
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const highestCursor = await loadOrchestratorSessionMessages(orchestratorSession.id, 0, true);
+      if (cancelled) {
+        return;
+      }
+      const replayCursor = Math.max(highestCursor, orchestratorEventCursorRef.current);
+      connectOrchestratorSessionStream(orchestratorSession.id, replayCursor);
+    })();
+    return () => {
+      cancelled = true;
+      stopOrchestratorSessionStream();
+    };
+  }, [workspaceView, orchestratorSession?.id]);
+
+  useEffect(() => {
+    if (!orchestratorSession) {
+      return;
+    }
+    const next: Record<OrchestratorPane, { provider: string; modelID: string }> = {
+      backend: { provider: "nim", modelID: "qwen-3.5-397b" },
+      frontend: { provider: "gemini", modelID: "google/gemini-3-flash" },
+      orchestrator: { provider: "gemini", modelID: "gemini-3.1-pro-preview" }
+    };
+    for (const agent of orchestratorSession.agents) {
+      if (!(agent.agent_id in next)) {
+        continue;
+      }
+      next[agent.agent_id as OrchestratorPane] = {
+        provider: agent.model.provider || next[agent.agent_id as OrchestratorPane].provider,
+        modelID: agent.model.model_id || next[agent.agent_id as OrchestratorPane].modelID
+      };
+    }
+    setOrchestratorPaneModels(next);
+  }, [orchestratorSession]);
+
+  useEffect(() => {
     void loadFiles(filePath);
   }, [filePath]);
 
   useEffect(() => {
     return () => {
       clearRefreshTimers();
+      stopOrchestratorSessionStream();
       if (eventFlushHandleRef.current !== null) {
         window.cancelAnimationFrame(eventFlushHandleRef.current);
         eventFlushHandleRef.current = null;
@@ -869,6 +1057,20 @@ export default function App() {
     }
   }
 
+  async function loadBackgroundAgents() {
+    try {
+      const res = await fetch("/api/v1/agents/background");
+      if (!res.ok) {
+        setBackgroundAgents([]);
+        return;
+      }
+      const data = (await res.json()) as BackgroundAgentJob[];
+      setBackgroundAgents(data);
+    } catch {
+      setBackgroundAgents([]);
+    }
+  }
+
   async function loadReadiness() {
     try {
       const res = await fetch("/health/ready");
@@ -880,6 +1082,333 @@ export default function App() {
       setCodexAuthReady(Boolean(data.codex_auth_ready));
     } catch {
       setCodexAuthReady(false);
+    }
+  }
+
+  function isCurrentOrchestratorSession(sessionID: string): boolean {
+    const normalizedSessionID = sessionID.trim();
+    if (!normalizedSessionID) {
+      return false;
+    }
+    const activeSessionID = orchestratorSessionIDRef.current.trim();
+    return activeSessionID === "" || activeSessionID === normalizedSessionID;
+  }
+
+  async function loadLatestOrchestratorSession(projectID: string) {
+    const requestedProjectID = projectID.trim() || selectedProjectRef.current.trim();
+    if (!requestedProjectID) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/v1/orchestrator/sessions?project_id=${encodeURIComponent(requestedProjectID)}&limit=20`);
+      if (!res.ok) {
+        if (selectedProjectRef.current.trim() !== requestedProjectID) {
+          return;
+        }
+        setOrchestratorSession(null);
+        setOrchestratorMessages([]);
+        setOrchestratorCursor(0);
+        return;
+      }
+      if (selectedProjectRef.current.trim() !== requestedProjectID) {
+        return;
+      }
+      const sessions = (await res.json()) as OrchestratorSessionState[];
+      const selected = sessions.find((item) => item.status !== "killed") ?? sessions[0] ?? null;
+      setOrchestratorSession(selected);
+      if (!selected) {
+        setOrchestratorMessages([]);
+        setOrchestratorCursor(0);
+        return;
+      }
+      await loadOrchestratorSessionState(selected.id);
+      await loadOrchestratorSessionMessages(selected.id, 0, true);
+    } catch {
+      // keep current UI state
+    }
+  }
+
+  async function ensureOrchestratorSessionState() {
+    if (orchestratorSession && orchestratorSession.project_id === selectedProject && orchestratorSession.status !== "killed") {
+      return orchestratorSession;
+    }
+    const requestedProjectID = selectedProjectRef.current.trim();
+    try {
+      const res = await fetch("/api/v1/orchestrator/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ project_id: requestedProjectID })
+      });
+      if (!res.ok) {
+        return null;
+      }
+      const created = (await res.json()) as OrchestratorSessionState;
+      if (selectedProjectRef.current.trim() !== requestedProjectID) {
+        return null;
+      }
+      setOrchestratorSession(created);
+      setOrchestratorMessages([]);
+      setOrchestratorCursor(0);
+      await loadOrchestratorSessionMessages(created.id, 0, true);
+      return created;
+    } catch {
+      return null;
+    }
+  }
+
+  async function loadOrchestratorSessionState(sessionID: string) {
+    const normalizedSessionID = sessionID.trim();
+    if (!normalizedSessionID) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/v1/orchestrator/sessions/${encodeURIComponent(normalizedSessionID)}`);
+      if (!res.ok) {
+        return;
+      }
+      if (!isCurrentOrchestratorSession(normalizedSessionID)) {
+        return;
+      }
+      const session = (await res.json()) as OrchestratorSessionState;
+      if (!isCurrentOrchestratorSession(normalizedSessionID)) {
+        return;
+      }
+      setOrchestratorSession(session);
+    } catch {
+      // keep current UI state
+    }
+  }
+
+  async function loadOrchestratorSessionMessages(sessionID: string, cursor: number, replace: boolean): Promise<number> {
+    const normalizedSessionID = sessionID.trim();
+    if (!normalizedSessionID) {
+      return Math.max(0, cursor);
+    }
+    const startCursor = Math.max(0, cursor);
+    try {
+      const res = await fetch(
+        `/api/v1/orchestrator/sessions/${encodeURIComponent(normalizedSessionID)}/messages?cursor=${encodeURIComponent(String(startCursor))}&limit=400`
+      );
+      if (!res.ok) {
+        return startCursor;
+      }
+      if (!isCurrentOrchestratorSession(normalizedSessionID)) {
+        return startCursor;
+      }
+      const messages = (await res.json()) as OrchestratorSessionMessage[];
+      if (messages.length === 0 && !replace) {
+        return startCursor;
+      }
+      if (!isCurrentOrchestratorSession(normalizedSessionID)) {
+        return startCursor;
+      }
+      setOrchestratorMessages((prev) => {
+        const existing = new Map<number, OrchestratorSessionMessage>();
+        const base = replace ? [] : prev;
+        for (const item of base) {
+          existing.set(item.cursor, item);
+        }
+        for (const item of messages) {
+          existing.set(item.cursor, item);
+        }
+        return Array.from(existing.values())
+          .sort((a, b) => a.cursor - b.cursor)
+          .slice(-5000);
+      });
+      const highest = messages.reduce((max, item) => Math.max(max, item.cursor), startCursor);
+      setOrchestratorCursor((prev) => Math.max(prev, highest));
+      return highest;
+    } catch {
+      // keep current UI state
+      return startCursor;
+    }
+  }
+
+  function clearOrchestratorReconnectTimer() {
+    if (orchestratorReconnectTimerRef.current !== null) {
+      window.clearTimeout(orchestratorReconnectTimerRef.current);
+      orchestratorReconnectTimerRef.current = null;
+    }
+  }
+
+  function stopOrchestratorSessionStream() {
+    clearOrchestratorReconnectTimer();
+    if (orchestratorStreamRef.current) {
+      orchestratorStreamRef.current.close();
+      orchestratorStreamRef.current = null;
+    }
+    orchestratorReconnectAttemptRef.current = 0;
+    orchestratorStreamSessionRef.current = "";
+  }
+
+  function scheduleOrchestratorReconnect(sessionID: string) {
+    if (orchestratorReconnectTimerRef.current !== null) {
+      return;
+    }
+    const attempt = Math.min(orchestratorReconnectAttemptRef.current + 1, 6);
+    orchestratorReconnectAttemptRef.current = attempt;
+    const delayMs = Math.min(400 * Math.pow(2, attempt - 1), 8000);
+    orchestratorReconnectTimerRef.current = window.setTimeout(() => {
+      orchestratorReconnectTimerRef.current = null;
+      const replayCursor = Math.max(orchestratorEventCursorRef.current, orchestratorCursorRef.current);
+      connectOrchestratorSessionStream(sessionID, replayCursor);
+    }, delayMs);
+  }
+
+  function connectOrchestratorSessionStream(sessionID: string, cursor: number) {
+    const normalizedSessionID = sessionID.trim();
+    if (!normalizedSessionID) {
+      return;
+    }
+
+    clearOrchestratorReconnectTimer();
+    if (orchestratorStreamRef.current) {
+      orchestratorStreamRef.current.close();
+      orchestratorStreamRef.current = null;
+    }
+    orchestratorStreamSessionRef.current = normalizedSessionID;
+
+    const source = new EventSource(
+      `/api/v1/orchestrator/sessions/${encodeURIComponent(normalizedSessionID)}/stream?cursor=${encodeURIComponent(
+        String(Math.max(0, cursor))
+      )}&limit=200`
+    );
+    orchestratorStreamRef.current = source;
+
+    const onMessage = (raw: MessageEvent) => {
+      if (typeof raw.data !== "string") {
+        return;
+      }
+      try {
+        const event = JSON.parse(raw.data) as EventItem;
+        const eventCursor = Number(event.payload?.cursor ?? event.payload?.message_cursor ?? "0");
+        if (Number.isFinite(eventCursor) && eventCursor > 0) {
+          orchestratorEventCursorRef.current = Math.max(orchestratorEventCursorRef.current, eventCursor);
+        }
+        if (event.type === "orchestrator.message.created") {
+          const payloadCursor = Number(event.payload?.message_cursor ?? event.payload?.cursor ?? "0");
+          if (Number.isFinite(payloadCursor) && payloadCursor > 0) {
+            void loadOrchestratorSessionMessages(normalizedSessionID, payloadCursor - 1, false);
+          } else {
+            void loadOrchestratorSessionMessages(normalizedSessionID, orchestratorCursorRef.current, false);
+          }
+          return;
+        }
+        if (event.type.startsWith("orchestrator.")) {
+          void loadOrchestratorSessionState(normalizedSessionID);
+        }
+      } catch {
+        // ignore malformed payload
+      }
+    };
+
+    source.onopen = () => {
+      orchestratorReconnectAttemptRef.current = 0;
+    };
+    source.onmessage = onMessage;
+    for (const eventType of ORCHESTRATOR_SESSION_EVENT_TYPES) {
+      source.addEventListener(eventType, onMessage as EventListener);
+    }
+
+    source.onerror = () => {
+      if (orchestratorStreamRef.current === source) {
+        source.close();
+        orchestratorStreamRef.current = null;
+      }
+      if (workspaceViewRef.current !== "orchestrator") {
+        return;
+      }
+      if (orchestratorSessionIDRef.current !== normalizedSessionID) {
+        return;
+      }
+      if (orchestratorStreamSessionRef.current !== normalizedSessionID) {
+        return;
+      }
+      scheduleOrchestratorReconnect(normalizedSessionID);
+    };
+  }
+
+  async function appendOrchestratorPaneMessage(pane: OrchestratorPane, rawContent: string) {
+    const content = rawContent.trim();
+    if (!content) {
+      return;
+    }
+    const session = await ensureOrchestratorSessionState();
+    if (!session) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/v1/orchestrator/sessions/${encodeURIComponent(session.id)}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          author_kind: "user",
+          author_id: "user",
+          target_pane: pane,
+          content
+        })
+      });
+      if (!res.ok) {
+        return;
+      }
+      await loadOrchestratorSessionMessages(session.id, orchestratorCursorRef.current, false);
+      await loadOrchestratorSessionState(session.id);
+      if (pane === "backend") {
+        setBackendPaneComposer("");
+      } else if (pane === "frontend") {
+        setFrontendPaneComposer("");
+      } else {
+        setMainPaneComposer("");
+      }
+    } catch {
+      // keep current UI state
+    }
+  }
+
+  async function updateOrchestratorPaneModel(pane: OrchestratorPane) {
+    if (!orchestratorSession) {
+      return;
+    }
+    const model = orchestratorPaneModels[pane];
+    try {
+      const res = await fetch(
+        `/api/v1/orchestrator/sessions/${encodeURIComponent(orchestratorSession.id)}/agents/${encodeURIComponent(pane)}/model`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            provider: model.provider,
+            model_id: model.modelID
+          })
+        }
+      );
+      if (!res.ok) {
+        return;
+      }
+      await loadOrchestratorSessionState(orchestratorSession.id);
+    } catch {
+      // keep current UI state
+    }
+  }
+
+  async function runOrchestratorSessionAction(action: "pause" | "resume" | "kill") {
+    if (!orchestratorSession) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/v1/orchestrator/sessions/${encodeURIComponent(orchestratorSession.id)}/${action}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: action === "pause" ? JSON.stringify({ reason: "operator pause" }) : undefined
+      });
+      if (!res.ok) {
+        return;
+      }
+      const session = (await res.json()) as OrchestratorSessionState;
+      setOrchestratorSession(session);
+      await loadOrchestratorSessionMessages(session.id, orchestratorCursorRef.current, false);
+    } catch {
+      // keep current UI state
     }
   }
 
@@ -1416,6 +1945,51 @@ export default function App() {
     }
   }
 
+  async function startBackgroundAgent(prompt: string) {
+    const trimmed = prompt.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    const normalizedFallbackChain = fallbackChainInput
+      .split(",")
+      .map((entry) => entry.trim().toLowerCase())
+      .filter((entry, index, list) => entry.length > 0 && list.indexOf(entry) === index);
+
+    const payload = {
+      project_id: selectedProject,
+      agent: "coder",
+      prompt: trimmed,
+      model_preference: modelPreference.trim().toLowerCase() || "codex",
+      fallback_chain: normalizedFallbackChain,
+      model_id: modelID.trim(),
+      context_budget: Math.max(1000, Math.min(200000, contextBudget || 24000))
+    };
+
+    try {
+      const res = await fetch("/api/v1/agents/background", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        return;
+      }
+      await loadBackgroundAgents();
+    } catch {
+      // keep current UI state
+    }
+  }
+
+  async function cancelBackgroundAgent(jobID: string) {
+    try {
+      await fetch(`/api/v1/agents/background/${encodeURIComponent(jobID)}/cancel`, { method: "POST" });
+      await loadBackgroundAgents();
+    } catch {
+      // keep current UI state
+    }
+  }
+
   async function runAction(action: "pause" | "resume" | "cancel", runID: string) {
     try {
       await fetch(`/api/v1/runs/${runID}/${action}`, { method: "POST" });
@@ -1608,6 +2182,11 @@ export default function App() {
       return;
     }
 
+    if (command.startsWith("/bg ")) {
+      await startBackgroundAgent(command.replace("/bg", "").trim());
+      return;
+    }
+
     if (command.startsWith("/orchestrate ")) {
       await createOrchestratorRun(command.replace("/orchestrate", "").trim());
       return;
@@ -1651,11 +2230,131 @@ export default function App() {
     setComposer("");
   }
 
+  async function handleBackgroundCommand() {
+    const raw = composer.trim();
+    if (!raw) {
+      return;
+    }
+    const prompt = raw.startsWith("/bg ") ? raw.replace("/bg", "").trim() : raw;
+    if (!prompt) {
+      return;
+    }
+    await startBackgroundAgent(prompt);
+    setComposer("");
+  }
+
   function handleQuickCommand(command: string) {
     setComposer(command);
     void executeCommand(command).finally(() => {
       setComposer("");
     });
+  }
+
+  function orchestratorRoleLabel(authorID: string) {
+    if (authorID === "backend") {
+      return "Backend";
+    }
+    if (authorID === "frontend") {
+      return "Frontend";
+    }
+    if (authorID === "orchestrator") {
+      return "Orchestrator";
+    }
+    if (authorID === "system") {
+      return "System";
+    }
+    return "User";
+  }
+
+  function renderOrchestratorPane(pane: OrchestratorPane, label: string, composerValue: string, setComposerValue: (value: string) => void) {
+    const agentState = orchestratorAgentMap[pane];
+    const paneModel = orchestratorPaneModels[pane];
+    return (
+      <article className="orchestrator-chat-pane" data-testid={`orchestrator-pane-${pane}`}>
+        <header className="orchestrator-chat-head">
+          <div>
+            <strong>{label}</strong>
+            <small className="mono">{pane}</small>
+          </div>
+          <span className={`status-pill ${normalizeStatusClass(agentState?.status ?? "idle")}`}>{agentState?.status ?? "idle"}</span>
+        </header>
+
+        <div className="orchestrator-model-row">
+          <select
+            value={paneModel.provider}
+            onChange={(e) =>
+              setOrchestratorPaneModels((prev) => ({
+                ...prev,
+                [pane]: {
+                  ...prev[pane],
+                  provider: e.target.value
+                }
+              }))
+            }
+          >
+            {(modelCatalog?.providers ?? []).map((provider) => (
+              <option key={provider.id} value={provider.id}>
+                {provider.id}
+              </option>
+            ))}
+            {!modelCatalog && <option value={paneModel.provider}>{paneModel.provider}</option>}
+          </select>
+          <input
+            value={paneModel.modelID}
+            onChange={(e) =>
+              setOrchestratorPaneModels((prev) => ({
+                ...prev,
+                [pane]: {
+                  ...prev[pane],
+                  modelID: e.target.value
+                }
+              }))
+            }
+            placeholder="model id"
+          />
+          <button type="button" onClick={() => void updateOrchestratorPaneModel(pane)}>
+            Apply
+          </button>
+        </div>
+
+        <div className="orchestrator-shared-stream">
+          {visibleOrchestratorMessages.map((message) => (
+            <article
+              key={`msg-${message.cursor}-${pane}`}
+              className={`orchestrator-msg-row ${
+                message.target_pane === pane || message.target_pane === "all" ? "targeted" : "context"
+              }`}
+            >
+              <div className="orchestrator-msg-head">
+                <span className={`status-pill role-${normalizeStatusClass(message.author_id)}`}>
+                  {orchestratorRoleLabel(message.author_id)}
+                </span>
+                <small className="mono">#{message.cursor}</small>
+                <small>{formatTime(message.created_at)}</small>
+              </div>
+              <p>{message.content}</p>
+            </article>
+          ))}
+        </div>
+
+        <div className="orchestrator-pane-composer">
+          <input
+            data-testid={`orchestrator-composer-${pane}`}
+            value={composerValue}
+            onChange={(e) => setComposerValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                void appendOrchestratorPaneMessage(pane, composerValue);
+              }
+            }}
+            placeholder={`Message ${label}`}
+          />
+          <button type="button" onClick={() => void appendOrchestratorPaneMessage(pane, composerValue)}>
+            Send
+          </button>
+        </div>
+      </article>
+    );
   }
 
   return (
@@ -1670,6 +2369,50 @@ export default function App() {
             <h1>BIOMETRICS</h1>
             <p>Autonomous Engineering Control Plane</p>
           </div>
+        </section>
+
+        <section className="panel sidebar-nav-panel">
+          <button
+            type="button"
+            className={`sidebar-nav-item ${workspaceView === "new-thread" ? "active" : ""}`}
+            onClick={() => setWorkspaceView("new-thread")}
+          >
+            <span className="button-inline">
+              <AppIcon name="command" />
+              Neuer Thread
+            </span>
+          </button>
+          <button
+            type="button"
+            className={`sidebar-nav-item ${workspaceView === "skills" ? "active" : ""}`}
+            onClick={() => setWorkspaceView("skills")}
+          >
+            <span className="button-inline">
+              <AppIcon name="skills" />
+              Fähigkeiten
+            </span>
+          </button>
+          <button
+            type="button"
+            className={`sidebar-nav-item ${workspaceView === "automations" ? "active" : ""}`}
+            onClick={() => setWorkspaceView("automations")}
+          >
+            <span className="button-inline">
+              <AppIcon name="scheduler" />
+              Automatisierungen
+            </span>
+          </button>
+          <button
+            data-testid="sidebar-orchestrator"
+            type="button"
+            className={`sidebar-nav-item ${workspaceView === "orchestrator" ? "active" : ""}`}
+            onClick={() => setWorkspaceView("orchestrator")}
+          >
+            <span className="button-inline">
+              <AppIcon name="orchestrator" />
+              Orchestrator
+            </span>
+          </button>
         </section>
 
         <section className="panel quick-stats">
@@ -1882,109 +2625,170 @@ export default function App() {
       </aside>
 
       <main className="column center-column">
-        <section className="panel timeline-panel grow">
-          <div className="panel-head">
-            <HeaderTitle icon="timeline">Run Timeline</HeaderTitle>
-            <span className="chip">{events.length}</span>
-          </div>
-
-          {selectedRunObject && (
-            <div className="run-hero">
-              <div className="run-hero-head">
-                <span className="mono">run {selectedRunObject.id.slice(0, 8)}</span>
-                <span className={`status-pill ${normalizeStatusClass(selectedRunObject.status)}`}>
-                  {selectedRunObject.status}
+        {workspaceView === "orchestrator" ? (
+          <>
+            <section className="panel orchestrator-workspace-panel grow" data-testid="orchestrator-workspace">
+              <div className="panel-head">
+                <HeaderTitle icon="orchestrator">BioCode Orchestrator</HeaderTitle>
+                <span className={`status-pill ${normalizeStatusClass(orchestratorSession?.status ?? "idle")}`}>
+                  {orchestratorSession?.status ?? "idle"}
                 </span>
               </div>
-              <p>{selectedRunObject.goal}</p>
-              <div className="run-hero-meta">
+              <div className="orchestrator-session-meta">
+                <small className="mono">session: {orchestratorSession?.id ?? "not started"}</small>
                 <small>
-                  {selectedRunObject.mode} · {selectedRunObject.scheduler_mode ?? "dag_parallel_v1"} @{" "}
-                  {selectedRunObject.max_parallelism ?? 8}
+                  jobs: {orchestratorSession?.jobs_started ?? 0}/{orchestratorSession?.max_jobs ?? 0}
                 </small>
                 <small>
-                  model: {selectedRunObject.model_preference ?? "codex"}
-                  {selectedRunObject.model_id ? ` (${selectedRunObject.model_id})` : ""}
-                  {selectedRunObject.fallback_chain && selectedRunObject.fallback_chain.length > 0
-                    ? ` -> ${selectedRunObject.fallback_chain.join(" -> ")}`
-                    : ""}
+                  guardrails: {orchestratorSession?.guardrails.paused ? `paused (${orchestratorSession.guardrails.reason ?? "reason n/a"})` : "active"}
                 </small>
-                <small>
-                  skills: {selectedRunObject.skill_selection_mode ?? "auto"}
-                  {selectedRunObject.skills && selectedRunObject.skills.length > 0
-                    ? ` (${selectedRunObject.skills.join(", ")})`
-                    : ""}
-                </small>
-                <small>project: {selectedRunObject.project_id}</small>
-                {selectedRunObject.blueprint_profile && <small>blueprint: {selectedRunObject.blueprint_profile}</small>}
-                <small>created: {formatTime(selectedRunObject.created_at)}</small>
               </div>
-            </div>
-          )}
 
-          {selectedRunObject?.fallback_triggered && (
-            <div className="fallback-banner" data-testid="fallback-banner">
-              Serial fallback active for this run
-            </div>
-          )}
-          {supervisionCheckpointEvent && (
-            <div className="supervision-banner" data-testid="supervision-banner">
-              Supervision checkpoint: {supervisionCheckpointEvent.payload?.checkpoint ?? "checkpoint"}.
-              {supervisionCheckpointEvent.payload?.reason ? ` ${supervisionCheckpointEvent.payload.reason}.` : ""} Use
-              resume to continue.
-            </div>
-          )}
+              <div className="orchestrator-grid-top">
+                {renderOrchestratorPane("backend", "Backend Agent", backendPaneComposer, setBackendPaneComposer)}
+                {renderOrchestratorPane("frontend", "Frontend Agent", frontendPaneComposer, setFrontendPaneComposer)}
+              </div>
+              <div className="orchestrator-grid-bottom">
+                {renderOrchestratorPane("orchestrator", "Main Orchestrator", mainPaneComposer, setMainPaneComposer)}
+              </div>
+            </section>
 
-          <div className="events" data-testid="events-list">
-            {visibleEvents.map((event) => (
-              <article key={event.id} className={`event-row tone-${eventTone(event.type)}`}>
-                <div className="event-head">
-                  <code>{formatTime(event.created_at)}</code>
-                  <strong>{event.type}</strong>
-                  <span>{event.source}</span>
+            <section className="panel orchestrator-session-actions">
+              <div className="actions">
+                <button type="button" onClick={() => void runOrchestratorSessionAction("pause")}>
+                  <span className="button-inline">
+                    <AppIcon name="pause" />
+                    Pause
+                  </span>
+                </button>
+                <button type="button" onClick={() => void runOrchestratorSessionAction("resume")}>
+                  <span className="button-inline">
+                    <AppIcon name="resume" />
+                    Resume
+                  </span>
+                </button>
+                <button type="button" className="danger" onClick={() => void runOrchestratorSessionAction("kill")}>
+                  <span className="button-inline">
+                    <AppIcon name="cancel" />
+                    Kill Switch
+                  </span>
+                </button>
+              </div>
+            </section>
+          </>
+        ) : (
+          <>
+            <section className="panel timeline-panel grow">
+              <div className="panel-head">
+                <HeaderTitle icon="timeline">Run Timeline</HeaderTitle>
+                <span className="chip">{events.length}</span>
+              </div>
+
+              {selectedRunObject && (
+                <div className="run-hero">
+                  <div className="run-hero-head">
+                    <span className="mono">run {selectedRunObject.id.slice(0, 8)}</span>
+                    <span className={`status-pill ${normalizeStatusClass(selectedRunObject.status)}`}>
+                      {selectedRunObject.status}
+                    </span>
+                  </div>
+                  <p>{selectedRunObject.goal}</p>
+                  <div className="run-hero-meta">
+                    <small>
+                      {selectedRunObject.mode} · {selectedRunObject.scheduler_mode ?? "dag_parallel_v1"} @{" "}
+                      {selectedRunObject.max_parallelism ?? 8}
+                    </small>
+                    <small>
+                      model: {selectedRunObject.model_preference ?? "codex"}
+                      {selectedRunObject.model_id ? ` (${selectedRunObject.model_id})` : ""}
+                      {selectedRunObject.fallback_chain && selectedRunObject.fallback_chain.length > 0
+                        ? ` -> ${selectedRunObject.fallback_chain.join(" -> ")}`
+                        : ""}
+                    </small>
+                    <small>
+                      skills: {selectedRunObject.skill_selection_mode ?? "auto"}
+                      {selectedRunObject.skills && selectedRunObject.skills.length > 0
+                        ? ` (${selectedRunObject.skills.join(", ")})`
+                        : ""}
+                    </small>
+                    <small>project: {selectedRunObject.project_id}</small>
+                    {selectedRunObject.blueprint_profile && <small>blueprint: {selectedRunObject.blueprint_profile}</small>}
+                    <small>created: {formatTime(selectedRunObject.created_at)}</small>
+                  </div>
                 </div>
-                <p>{describeEvent(event)}</p>
-              </article>
-            ))}
-          </div>
-        </section>
+              )}
 
-        <section className="panel composer-panel">
-          <div className="composer-main">
-            <input
-              data-testid="composer-input"
-              value={composer}
-              onChange={(e) => setComposer(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  void handleCommand();
-                }
-              }}
-              placeholder="/run ... | /orchestrate ... | /eval-run | /pause | /resume | /cancel | /retry-failed"
-            />
-            <button data-testid="composer-send" onClick={() => void handleCommand()}>
-              <span className="button-inline">
-                <AppIcon name="command" />
-                Execute
-              </span>
-            </button>
-          </div>
-          <div className="command-rail">
-            {QUICK_COMMANDS.map((command) => (
-              <button
-                key={command.label}
-                type="button"
-                className="ghost-command"
-                onClick={() => handleQuickCommand(command.value)}
-              >
-                <span className="button-inline">
-                  <AppIcon name={command.icon} />
-                  {command.label}
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
+              {selectedRunObject?.fallback_triggered && (
+                <div className="fallback-banner" data-testid="fallback-banner">
+                  Serial fallback active for this run
+                </div>
+              )}
+              {supervisionCheckpointEvent && (
+                <div className="supervision-banner" data-testid="supervision-banner">
+                  Supervision checkpoint: {supervisionCheckpointEvent.payload?.checkpoint ?? "checkpoint"}.
+                  {supervisionCheckpointEvent.payload?.reason ? ` ${supervisionCheckpointEvent.payload.reason}.` : ""} Use
+                  resume to continue.
+                </div>
+              )}
+
+              <div className="events" data-testid="events-list">
+                {visibleEvents.map((event) => (
+                  <article key={event.id} className={`event-row tone-${eventTone(event.type)}`}>
+                    <div className="event-head">
+                      <code>{formatTime(event.created_at)}</code>
+                      <strong>{event.type}</strong>
+                      <span>{event.source}</span>
+                    </div>
+                    <p>{describeEvent(event)}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section className="panel composer-panel">
+              <div className="composer-main">
+                <input
+                  data-testid="composer-input"
+                  value={composer}
+                  onChange={(e) => setComposer(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      void handleCommand();
+                    }
+                  }}
+                  placeholder="/run ... | /bg ... | /orchestrate ... | /eval-run | /pause | /resume | /cancel | /retry-failed"
+                />
+                <button data-testid="composer-send" onClick={() => void handleCommand()}>
+                  <span className="button-inline">
+                    <AppIcon name="command" />
+                    Execute
+                  </span>
+                </button>
+                <button data-testid="composer-send-background" onClick={() => void handleBackgroundCommand()}>
+                  <span className="button-inline">
+                    <AppIcon name="play" />
+                    Run Background
+                  </span>
+                </button>
+              </div>
+              <div className="command-rail">
+                {QUICK_COMMANDS.map((command) => (
+                  <button
+                    key={command.label}
+                    type="button"
+                    className="ghost-command"
+                    onClick={() => handleQuickCommand(command.value)}
+                  >
+                    <span className="button-inline">
+                      <AppIcon name={command.icon} />
+                      {command.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          </>
+        )}
       </main>
 
       <aside className="column sidebar-right">
@@ -2036,6 +2840,42 @@ export default function App() {
                 Cancel
               </span>
             </button>
+          </div>
+        </section>
+
+        <section className="panel">
+          <div className="panel-head">
+            <HeaderTitle icon="runs">Background Agents</HeaderTitle>
+            <span className="chip">{backgroundAgents.length}</span>
+          </div>
+
+          <div className="background-agent-list" data-testid="background-agents-list">
+            {backgroundAgents.map((job) => (
+              <article key={job.id} className="run-card background-agent-card">
+                <div className="run-card-head">
+                  <span className="mono">{job.agent}</span>
+                  <span className={`status-pill ${normalizeStatusClass(job.status)}`}>{job.status}</span>
+                </div>
+                <p>{job.prompt}</p>
+                <small>
+                  {job.model_preference ?? "codex"}
+                  {job.model_id ? ` (${job.model_id})` : ""}
+                  {job.provider ? ` via ${job.provider}` : ""}
+                </small>
+                <small>
+                  {job.project_id} · {formatTime(job.created_at)}
+                </small>
+                {job.error && <small>{job.error}</small>}
+                {(job.status === "queued" || job.status === "running") && (
+                  <div className="background-agent-card-actions">
+                    <button type="button" className="danger" onClick={() => void cancelBackgroundAgent(job.id)}>
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </article>
+            ))}
+            {backgroundAgents.length === 0 && <p className="hint-text">No background agents started yet.</p>}
           </div>
         </section>
 

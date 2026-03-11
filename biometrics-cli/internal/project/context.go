@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"biometrics-cli/internal/models"
+	"biometrics-cli/internal/paths"
 )
 
 type ProjectContext struct {
@@ -17,7 +18,7 @@ type ProjectContext struct {
 
 // LoadProjectContext lädt die projektspezifische boulder.json
 func LoadProjectContext(projectID string) (*ProjectContext, error) {
-	basePath := filepath.Join("/Users/jeremy/.sisyphus/plans", projectID)
+	basePath := paths.SisyphusPlansDir(projectID)
 	boulderPath := filepath.Join(basePath, "boulder.json")
 
 	data, err := os.ReadFile(boulderPath)

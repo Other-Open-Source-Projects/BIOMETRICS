@@ -16,6 +16,7 @@ import (
 	"biometrics-cli/internal/contracts"
 	"biometrics-cli/internal/evals"
 	"biometrics-cli/internal/optimizer"
+	"biometrics-cli/internal/runtime/background"
 	"biometrics-cli/internal/runtime/bus"
 	runtimeorchestrator "biometrics-cli/internal/runtime/orchestrator"
 	"biometrics-cli/internal/runtime/scheduler"
@@ -25,14 +26,25 @@ import (
 
 type Server struct {
 	manager            *scheduler.RunManager
+	backgroundAgents   *background.Manager
 	bus                *bus.EventBus
 	mux                *http.ServeMux
 	orchestrator       *runtimeorchestrator.Service
+	orchestratorV1     bool
 	evals              *evals.Service
 	optimizer          *optimizer.Service
 	optimizerEnabled   bool
 	optimizerAutoApply bool
 }
+
+const (
+	defaultOrchestratorListLimit    = 20
+	maxOrchestratorListLimit        = 200
+	defaultOrchestratorMessageLimit = 200
+	maxOrchestratorMessageLimit     = 2000
+	defaultOrchestratorStreamLimit  = 200
+	maxOrchestratorStreamLimit      = 2000
+)
 
 func NewServer(manager *scheduler.RunManager, eventBus *bus.EventBus) *Server {
 	optimizerEnabled := boolEnvOrDefault("BIOMETRICS_OPTIMIZER_ENABLED", true)
@@ -43,6 +55,7 @@ func NewServer(manager *scheduler.RunManager, eventBus *bus.EventBus) *Server {
 func NewServerWithFlags(manager *scheduler.RunManager, eventBus *bus.EventBus, optimizerEnabled, optimizerAutoApply bool) *Server {
 	orchestratorService := runtimeorchestrator.NewService(manager, eventBus)
 	evalService := evals.NewService(orchestratorService, eventBus)
+	orchestratorV1 := boolEnvOrDefault("BIOCODE_ORCHESTRATOR_V1", true)
 	var optimizerService *optimizer.Service
 	if optimizerEnabled {
 		optimizerService = optimizer.NewService(manager.Store(), orchestratorService, evalService, eventBus)
@@ -52,6 +65,7 @@ func NewServerWithFlags(manager *scheduler.RunManager, eventBus *bus.EventBus, o
 		bus:                eventBus,
 		mux:                http.NewServeMux(),
 		orchestrator:       orchestratorService,
+		orchestratorV1:     orchestratorV1,
 		evals:              evalService,
 		optimizer:          optimizerService,
 		optimizerEnabled:   optimizerEnabled,
@@ -59,6 +73,11 @@ func NewServerWithFlags(manager *scheduler.RunManager, eventBus *bus.EventBus, o
 	}
 	s.routes()
 	return s
+}
+
+func (s *Server) SetBackgroundAgents(manager *background.Manager) {
+	s.backgroundAgents = manager
+	s.orchestrator.SetBackgroundAgents(manager)
 }
 
 func (s *Server) Handler() http.Handler {
@@ -76,6 +95,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/v1/blueprints", s.handleBlueprints)
 	s.mux.HandleFunc("/api/v1/blueprints/", s.handleBlueprintByID)
 	s.mux.HandleFunc("/api/v1/models", s.handleModels)
+	s.mux.HandleFunc("/api/v1/agents/background", s.handleBackgroundAgents)
+	s.mux.HandleFunc("/api/v1/agents/background/", s.handleBackgroundAgentByID)
 	s.mux.HandleFunc("/api/v1/auth/codex/status", s.handleCodexAuthStatus)
 	s.mux.HandleFunc("/api/v1/auth/codex/login", s.handleCodexAuthLogin)
 	s.mux.HandleFunc("/api/v1/auth/codex/logout", s.handleCodexAuthLogout)
@@ -90,6 +111,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/v1/orchestrator/plans", s.handleOrchestratorPlans)
 	s.mux.HandleFunc("/api/v1/orchestrator/runs", s.handleOrchestratorRuns)
 	s.mux.HandleFunc("/api/v1/orchestrator/runs/", s.handleOrchestratorRunByID)
+	s.mux.HandleFunc("/api/v1/orchestrator/sessions", s.handleOrchestratorSessions)
+	s.mux.HandleFunc("/api/v1/orchestrator/sessions/", s.handleOrchestratorSessionByID)
 	s.mux.HandleFunc("/api/v1/orchestrator/optimizer/recommendations", s.handleOptimizerRecommendations)
 	s.mux.HandleFunc("/api/v1/orchestrator/optimizer/recommendations/", s.handleOptimizerRecommendationByID)
 	s.mux.HandleFunc("/api/v1/evals/run", s.handleEvalsRun)
@@ -380,6 +403,100 @@ func (s *Server) handleModels(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, catalog)
 }
 
+func (s *Server) handleBackgroundAgents(w http.ResponseWriter, r *http.Request) {
+	if s.backgroundAgents == nil {
+		writeError(w, http.StatusServiceUnavailable, "background agents are not configured")
+		return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		writeJSON(w, http.StatusOK, s.backgroundAgents.List())
+	case http.MethodPost:
+		var req struct {
+			ProjectID       string   `json:"project_id,omitempty"`
+			Agent           string   `json:"agent,omitempty"`
+			Prompt          string   `json:"prompt"`
+			ModelPreference string   `json:"model_preference,omitempty"`
+			FallbackChain   []string `json:"fallback_chain,omitempty"`
+			ModelID         string   `json:"model_id,omitempty"`
+			ContextBudget   int      `json:"context_budget,omitempty"`
+		}
+		if err := decodeOptionalJSON(r, &req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON")
+			return
+		}
+		if strings.TrimSpace(req.Prompt) == "" {
+			writeError(w, http.StatusBadRequest, "prompt is required")
+			return
+		}
+
+		job, err := s.backgroundAgents.Start(r.Context(), background.StartRequest{
+			ProjectID:       req.ProjectID,
+			Agent:           req.Agent,
+			Prompt:          req.Prompt,
+			ModelPreference: req.ModelPreference,
+			FallbackChain:   req.FallbackChain,
+			ModelID:         req.ModelID,
+			ContextBudget:   req.ContextBudget,
+		})
+		if err != nil {
+			if errors.Is(err, background.ErrNotConfigured) {
+				writeError(w, http.StatusServiceUnavailable, err.Error())
+				return
+			}
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusCreated, job)
+	default:
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+	}
+}
+
+func (s *Server) handleBackgroundAgentByID(w http.ResponseWriter, r *http.Request) {
+	if s.backgroundAgents == nil {
+		writeError(w, http.StatusServiceUnavailable, "background agents are not configured")
+		return
+	}
+
+	trimmed := strings.TrimPrefix(r.URL.Path, "/api/v1/agents/background/")
+	parts := strings.Split(strings.Trim(trimmed, "/"), "/")
+	if len(parts) == 0 || strings.TrimSpace(parts[0]) == "" {
+		writeError(w, http.StatusBadRequest, "background job id missing")
+		return
+	}
+
+	jobID := parts[0]
+	action := ""
+	if len(parts) > 1 {
+		action = parts[1]
+	}
+
+	switch {
+	case r.Method == http.MethodGet && action == "":
+		job, ok := s.backgroundAgents.Get(jobID)
+		if !ok {
+			writeError(w, http.StatusNotFound, "background job not found")
+			return
+		}
+		writeJSON(w, http.StatusOK, job)
+	case r.Method == http.MethodPost && action == "cancel":
+		job, err := s.backgroundAgents.Cancel(jobID)
+		if err != nil {
+			if errors.Is(err, background.ErrNotFound) {
+				writeError(w, http.StatusNotFound, "background job not found")
+				return
+			}
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, job)
+	default:
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+	}
+}
+
 func (s *Server) handleCodexAuthStatus(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
@@ -667,6 +784,277 @@ func (s *Server) handleOrchestratorRunByID(w http.ResponseWriter, r *http.Reques
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 	}
+}
+
+func (s *Server) handleOrchestratorSessions(w http.ResponseWriter, r *http.Request) {
+	if !s.orchestratorV1 {
+		writeError(w, http.StatusNotFound, "orchestrator sessions are disabled")
+		return
+	}
+
+	switch r.Method {
+	case http.MethodPost:
+		var req runtimeorchestrator.OrchestratorSessionCreateRequest
+		if err := decodeOptionalJSON(r, &req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON")
+			return
+		}
+		session, err := s.orchestrator.CreateSession(req)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusCreated, session)
+	case http.MethodGet:
+		projectID := strings.TrimSpace(r.URL.Query().Get("project_id"))
+		limit := parseBoundedIntQuery(r.URL.Query().Get("limit"), defaultOrchestratorListLimit, 1, maxOrchestratorListLimit)
+		sessions, err := s.orchestrator.ListSessions(projectID, limit)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, sessions)
+	default:
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+	}
+}
+
+func (s *Server) handleOrchestratorSessionByID(w http.ResponseWriter, r *http.Request) {
+	if !s.orchestratorV1 {
+		writeError(w, http.StatusNotFound, "orchestrator sessions are disabled")
+		return
+	}
+
+	trimmed := strings.TrimPrefix(r.URL.Path, "/api/v1/orchestrator/sessions/")
+	parts := strings.Split(strings.Trim(trimmed, "/"), "/")
+	if len(parts) == 0 || strings.TrimSpace(parts[0]) == "" {
+		writeError(w, http.StatusBadRequest, "session id missing")
+		return
+	}
+	sessionID := strings.TrimSpace(parts[0])
+	action := ""
+	if len(parts) > 1 {
+		action = strings.TrimSpace(parts[1])
+	}
+
+	switch {
+	case r.Method == http.MethodGet && action == "":
+		session, err := s.orchestrator.GetSession(sessionID)
+		if err != nil {
+			writeError(w, http.StatusNotFound, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, session)
+	case r.Method == http.MethodGet && action == "messages":
+		cursor := parseNonNegativeInt64Query(r.URL.Query().Get("cursor"))
+		limit := parseBoundedIntQuery(r.URL.Query().Get("limit"), defaultOrchestratorMessageLimit, 1, maxOrchestratorMessageLimit)
+		messages, err := s.orchestrator.ListSessionMessages(sessionID, cursor, limit)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, messages)
+	case r.Method == http.MethodPost && action == "messages":
+		var req runtimeorchestrator.OrchestratorMessageAppendRequest
+		if err := decodeOptionalJSON(r, &req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON")
+			return
+		}
+		message, err := s.orchestrator.AppendSessionMessage(sessionID, req)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusCreated, message)
+	case r.Method == http.MethodGet && action == "stream":
+		if _, err := s.orchestrator.GetSession(sessionID); err != nil {
+			writeError(w, http.StatusNotFound, err.Error())
+			return
+		}
+		cursor := parseNonNegativeInt64Query(r.URL.Query().Get("cursor"))
+		limit := parseBoundedIntQuery(r.URL.Query().Get("limit"), defaultOrchestratorStreamLimit, 1, maxOrchestratorStreamLimit)
+		s.streamOrchestratorSessionEvents(w, r, sessionID, cursor, limit)
+	case r.Method == http.MethodPost && action == "pause":
+		var req struct {
+			Reason string `json:"reason,omitempty"`
+		}
+		if err := decodeOptionalJSON(r, &req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON")
+			return
+		}
+		session, err := s.orchestrator.PauseSession(sessionID, req.Reason)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, session)
+	case r.Method == http.MethodPost && action == "resume":
+		session, err := s.orchestrator.ResumeSession(sessionID)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, session)
+	case r.Method == http.MethodPost && action == "kill":
+		session, err := s.orchestrator.KillSession(sessionID)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, session)
+	case r.Method == http.MethodPost && action == "agents" && len(parts) >= 4 && strings.EqualFold(parts[3], "model"):
+		agentID := parts[2]
+		var req runtimeorchestrator.OrchestratorAgentModelOverrideRequest
+		if err := decodeOptionalJSON(r, &req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON")
+			return
+		}
+		state, err := s.orchestrator.SetSessionAgentModel(sessionID, agentID, req)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, state)
+	default:
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+	}
+}
+
+func (s *Server) streamOrchestratorSessionEvents(
+	w http.ResponseWriter,
+	r *http.Request,
+	sessionID string,
+	cursor int64,
+	limit int,
+) {
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		writeError(w, http.StatusInternalServerError, "stream unsupported")
+		return
+	}
+
+	history, err := s.bus.Replay(sessionID, limit*4)
+		if err == nil {
+			for _, ev := range history {
+				if ev.RunID != sessionID {
+					continue
+				}
+				if !strings.HasPrefix(ev.Type, "orchestrator.") {
+					continue
+				}
+				if shouldSkipOrchestratorEventAtCursor(ev.Payload, cursor) {
+					continue
+				}
+				writeSSE(w, ev)
+			}
+			flusher.Flush()
+		}
+
+	subID, ch := s.bus.Subscribe(128)
+	defer s.bus.Unsubscribe(subID)
+	pingTicker := time.NewTicker(15 * time.Second)
+	defer pingTicker.Stop()
+
+	ctx := r.Context()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-pingTicker.C:
+			fmt.Fprintf(w, ": ping\n\n")
+			flusher.Flush()
+		case ev, ok := <-ch:
+			if !ok {
+				return
+			}
+			if ev.RunID != sessionID {
+				continue
+			}
+			if !strings.HasPrefix(ev.Type, "orchestrator.") {
+				continue
+			}
+			if shouldSkipOrchestratorEventAtCursor(ev.Payload, cursor) {
+				continue
+			}
+			writeSSE(w, ev)
+			flusher.Flush()
+		}
+	}
+}
+
+func parseBoundedIntQuery(raw string, fallback, min, max int) int {
+	value := fallback
+	if parsed, err := strconv.Atoi(strings.TrimSpace(raw)); err == nil {
+		value = parsed
+	}
+	if value < min {
+		return min
+	}
+	if value > max {
+		return max
+	}
+	return value
+}
+
+func parseNonNegativeInt64Query(raw string) int64 {
+	parsed, err := strconv.ParseInt(strings.TrimSpace(raw), 10, 64)
+	if err != nil || parsed < 0 {
+		return 0
+	}
+	return parsed
+}
+
+func parseOrchestratorEventCursor(payload map[string]string) int64 {
+	if len(payload) == 0 {
+		return 0
+	}
+	if raw := strings.TrimSpace(payload["cursor"]); raw != "" {
+		if parsed, err := strconv.ParseInt(raw, 10, 64); err == nil {
+			return parsed
+		}
+	}
+	if raw := strings.TrimSpace(payload["message_cursor"]); raw != "" {
+		if parsed, err := strconv.ParseInt(raw, 10, 64); err == nil {
+			return parsed
+		}
+	}
+	return 0
+}
+
+func shouldSkipOrchestratorEventAtCursor(payload map[string]string, streamCursor int64) bool {
+	if streamCursor <= 0 || len(payload) == 0 {
+		return false
+	}
+
+	eventCursor, hasEventCursor := parsePositiveInt64Payload(payload, "cursor")
+	messageCursor, hasMessageCursor := parsePositiveInt64Payload(payload, "message_cursor")
+
+	switch {
+	case hasEventCursor && hasMessageCursor:
+		return eventCursor <= streamCursor && messageCursor <= streamCursor
+	case hasEventCursor:
+		return eventCursor <= streamCursor
+	case hasMessageCursor:
+		return messageCursor <= streamCursor
+	default:
+		return false
+	}
+}
+
+func parsePositiveInt64Payload(payload map[string]string, key string) (int64, bool) {
+	raw := strings.TrimSpace(payload[key])
+	if raw == "" {
+		return 0, false
+	}
+	parsed, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil || parsed <= 0 {
+		return 0, false
+	}
+	return parsed, true
 }
 
 func (s *Server) handleOptimizerRecommendations(w http.ResponseWriter, r *http.Request) {

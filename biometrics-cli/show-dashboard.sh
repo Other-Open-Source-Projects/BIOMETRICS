@@ -14,7 +14,8 @@ if [ -z "$PID" ]; then
     echo "❌ ERROR: Go orchestrator NOT running!"
     echo ""
     echo "Start it with:"
-    echo "  cd /Users/jeremy/dev/BIOMETRICS/biometrics-cli"
+    ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+    echo "  cd \"$ROOT/biometrics-cli\""
     echo "  ./biometrics"
     exit 1
 fi

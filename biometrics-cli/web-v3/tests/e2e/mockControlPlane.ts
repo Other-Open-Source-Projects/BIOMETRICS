@@ -60,6 +60,46 @@ type OrchestratorRun = {
   updated_at: string;
 };
 
+type OrchestratorSessionAgentState = {
+  session_id: string;
+  agent_id: "backend" | "frontend" | "orchestrator";
+  status: "idle" | "running" | "paused" | "error";
+  model: {
+    provider: string;
+    model_id: string;
+  };
+  created_at: string;
+  updated_at: string;
+};
+
+type OrchestratorSession = {
+  id: string;
+  project_id: string;
+  status: "active" | "paused" | "killed";
+  guardrails: {
+    paused: boolean;
+    reason?: string;
+  };
+  max_jobs: number;
+  jobs_started: number;
+  agents: OrchestratorSessionAgentState[];
+  created_at: string;
+  updated_at: string;
+  paused_at?: string;
+  killed_at?: string;
+};
+
+type OrchestratorSessionMessage = {
+  id: string;
+  cursor: number;
+  session_id: string;
+  author_kind: "user" | "agent" | "system";
+  author_id: "backend" | "frontend" | "orchestrator" | "user" | "system";
+  target_pane: "all" | "backend" | "frontend" | "orchestrator";
+  content: string;
+  created_at: string;
+};
+
 type OptimizerRecommendation = {
   id: string;
   project_id: string;
@@ -135,9 +175,12 @@ export async function installMockControlPlane(page: Page): Promise<MockControlPl
   const tasksByRun = new Map<string, Task[]>();
   const graphsByRun = new Map<string, TaskGraph>();
   const orchestratorRuns = new Map<string, OrchestratorRun>();
+  const orchestratorSessions = new Map<string, OrchestratorSession>();
+  const orchestratorMessages = new Map<string, OrchestratorSessionMessage[]>();
   const optimizerRecommendations = new Map<string, OptimizerRecommendation>();
   let optimizerCounter = 0;
   let orchestratorCounter = 0;
+  let orchestratorSessionCounter = 0;
 
   const seedRun: Run = {
     id: "run-seed",
@@ -232,6 +275,33 @@ export async function installMockControlPlane(page: Page): Promise<MockControlPl
     updated_at: now
   });
 
+  const defaultSessionAgents = (sessionID: string): OrchestratorSessionAgentState[] => [
+    {
+      session_id: sessionID,
+      agent_id: "backend",
+      status: "idle",
+      model: { provider: "nim", model_id: "qwen-3.5-397b" },
+      created_at: now,
+      updated_at: now
+    },
+    {
+      session_id: sessionID,
+      agent_id: "frontend",
+      status: "idle",
+      model: { provider: "gemini", model_id: "google/gemini-3-flash" },
+      created_at: now,
+      updated_at: now
+    },
+    {
+      session_id: sessionID,
+      agent_id: "orchestrator",
+      status: "idle",
+      model: { provider: "gemini", model_id: "gemini-3.1-pro-preview" },
+      created_at: now,
+      updated_at: now
+    }
+  ];
+
   await page.route("**/health/ready", async (route) => {
     if (route.request().method() !== "GET") {
       return json(route, 405, { error: "method not allowed" });
@@ -260,6 +330,14 @@ export async function installMockControlPlane(page: Page): Promise<MockControlPl
       constructor(url: string) {
         this.url = url;
         MockEventSource.instances.push(this);
+        window.setTimeout(() => {
+          if (this.readyState === 2) {
+            return;
+          }
+          if (this.onopen) {
+            this.onopen(new Event("open"));
+          }
+        }, 0);
       }
 
       addEventListener(type: string, listener: (event: MessageEvent) => void): void {
@@ -281,6 +359,9 @@ export async function installMockControlPlane(page: Page): Promise<MockControlPl
       }
 
       emit(type: string, payload: unknown): void {
+        if (this.readyState === 2) {
+          return;
+        }
         const data = typeof payload === "string" ? payload : JSON.stringify(payload);
         const message = new MessageEvent(type, { data });
         const listeners = this.listeners.get(type);
@@ -289,6 +370,15 @@ export async function installMockControlPlane(page: Page): Promise<MockControlPl
         }
         if (type === "message" && this.onmessage) {
           this.onmessage(message);
+        }
+      }
+
+      emitError(): void {
+        if (this.readyState === 2) {
+          return;
+        }
+        if (this.onerror) {
+          this.onerror(new Event("error"));
         }
       }
     }
@@ -304,6 +394,17 @@ export async function installMockControlPlane(page: Page): Promise<MockControlPl
         instance.emit("message", event);
       }
     };
+
+    (window as unknown as { __emitSSEError: (urlIncludes?: string) => void }).__emitSSEError = (urlIncludes?: string) => {
+      const instances = MockEventSource.instances;
+      for (const instance of instances) {
+        if (urlIncludes && !instance.url.includes(urlIncludes)) {
+          continue;
+        }
+        instance.emitError();
+      }
+    };
+
     (window as unknown as { __eventSourceCount: () => number }).__eventSourceCount = () => MockEventSource.instances.length;
   });
 
@@ -378,6 +479,144 @@ export async function installMockControlPlane(page: Page): Promise<MockControlPl
           enabled: true
         }
       ]);
+    }
+    if (method === "POST" && path === "/api/v1/orchestrator/sessions") {
+      orchestratorSessionCounter += 1;
+      const payload = (body ?? {}) as Record<string, unknown>;
+      const sessionID = `orc-session-${orchestratorSessionCounter}`;
+      const session: OrchestratorSession = {
+        id: sessionID,
+        project_id: String(payload.project_id ?? "biometrics"),
+        status: "active",
+        guardrails: {
+          paused: false
+        },
+        max_jobs: 60,
+        jobs_started: 0,
+        agents: defaultSessionAgents(sessionID),
+        created_at: now,
+        updated_at: now
+      };
+      orchestratorSessions.set(sessionID, session);
+      orchestratorMessages.set(sessionID, []);
+      return json(route, 201, session);
+    }
+    if (method === "GET" && path === "/api/v1/orchestrator/sessions") {
+      const projectID = url.searchParams.get("project_id") ?? "";
+      const limit = Number(url.searchParams.get("limit") ?? "20");
+      const list = Array.from(orchestratorSessions.values())
+        .filter((session) => !projectID || session.project_id === projectID)
+        .slice(0, Number.isFinite(limit) && limit > 0 ? limit : 20);
+      return json(route, 200, list);
+    }
+    if (path.startsWith("/api/v1/orchestrator/sessions/")) {
+      const trimmed = path.replace("/api/v1/orchestrator/sessions/", "");
+      const parts = trimmed.split("/").filter(Boolean);
+      const sessionID = parts[0];
+      const action = parts[1] ?? "";
+      const session = orchestratorSessions.get(sessionID);
+      if (!session) {
+        return json(route, 404, { error: "session not found" });
+      }
+
+      if (method === "GET" && action === "") {
+        return json(route, 200, session);
+      }
+      if (method === "GET" && action === "messages") {
+        const cursor = Number(url.searchParams.get("cursor") ?? "0");
+        const limit = Number(url.searchParams.get("limit") ?? "200");
+        const list = (orchestratorMessages.get(sessionID) ?? [])
+          .filter((message) => message.cursor > (Number.isFinite(cursor) ? cursor : 0))
+          .slice(0, Number.isFinite(limit) && limit > 0 ? limit : 200);
+        return json(route, 200, list);
+      }
+      if (method === "POST" && action === "messages") {
+        const payload = (body ?? {}) as Record<string, unknown>;
+        const list = orchestratorMessages.get(sessionID) ?? [];
+        const cursor = list.length + 1;
+        const message: OrchestratorSessionMessage = {
+          id: String(cursor),
+          cursor,
+          session_id: sessionID,
+          author_kind: (String(payload.author_kind ?? "user") as OrchestratorSessionMessage["author_kind"]) ?? "user",
+          author_id: "user",
+          target_pane: (String(payload.target_pane ?? "all") as OrchestratorSessionMessage["target_pane"]) ?? "all",
+          content: String(payload.content ?? ""),
+          created_at: new Date().toISOString()
+        };
+        list.push(message);
+        if (message.content.trim().length > 0) {
+          list.push({
+            id: String(cursor + 1),
+            cursor: cursor + 1,
+            session_id: sessionID,
+            author_kind: "agent",
+            author_id: message.target_pane === "frontend" ? "frontend" : message.target_pane === "orchestrator" ? "orchestrator" : "backend",
+            target_pane: "all",
+            content: "Acknowledged. Executing next step.",
+            created_at: new Date().toISOString()
+          });
+        }
+        orchestratorMessages.set(sessionID, list);
+        session.jobs_started += 1;
+        session.updated_at = new Date().toISOString();
+        session.agents = session.agents.map((agent) =>
+          agent.agent_id === (message.target_pane === "all" ? "backend" : message.target_pane)
+            ? { ...agent, status: "running", updated_at: new Date().toISOString() }
+            : agent
+        );
+        orchestratorSessions.set(sessionID, session);
+        return json(route, 201, message);
+      }
+      if (method === "POST" && action === "pause") {
+        session.status = "paused";
+        session.guardrails = { paused: true, reason: "operator pause" };
+        session.paused_at = new Date().toISOString();
+        session.updated_at = session.paused_at;
+        session.agents = session.agents.map((agent) => ({ ...agent, status: "paused", updated_at: session.updated_at! }));
+        orchestratorSessions.set(sessionID, session);
+        return json(route, 200, session);
+      }
+      if (method === "POST" && action === "resume") {
+        session.status = "active";
+        session.guardrails = { paused: false };
+        session.paused_at = undefined;
+        session.updated_at = new Date().toISOString();
+        session.agents = session.agents.map((agent) => ({ ...agent, status: "idle", updated_at: session.updated_at! }));
+        orchestratorSessions.set(sessionID, session);
+        return json(route, 200, session);
+      }
+      if (method === "POST" && action === "kill") {
+        session.status = "killed";
+        session.guardrails = { paused: true, reason: "kill_switch" };
+        session.killed_at = new Date().toISOString();
+        session.updated_at = session.killed_at;
+        session.agents = session.agents.map((agent) => ({ ...agent, status: "paused", updated_at: session.updated_at! }));
+        orchestratorSessions.set(sessionID, session);
+        return json(route, 200, session);
+      }
+      if (method === "POST" && action === "agents" && parts[3] === "model") {
+        const agentID = parts[2] as "backend" | "frontend" | "orchestrator";
+        const payload = (body ?? {}) as Record<string, unknown>;
+        session.agents = session.agents.map((agent) =>
+          agent.agent_id === agentID
+            ? {
+                ...agent,
+                model: {
+                  provider: String(payload.provider ?? agent.model.provider),
+                  model_id: String(payload.model_id ?? agent.model.model_id)
+                },
+                updated_at: new Date().toISOString()
+              }
+            : agent
+        );
+        session.updated_at = new Date().toISOString();
+        orchestratorSessions.set(sessionID, session);
+        return json(route, 200, session.agents.find((agent) => agent.agent_id === agentID));
+      }
+      if (method === "GET" && action === "stream") {
+        return json(route, 200, { ok: true });
+      }
     }
     if (method === "GET" && path === "/api/v1/orchestrator/capabilities") {
       return json(route, 200, {

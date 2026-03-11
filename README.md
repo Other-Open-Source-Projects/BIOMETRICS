@@ -1,440 +1,277 @@
-# 🧬 BIOMETRICS
+# BIOMETRICS V3 (Codex-First Overlay)
 
-<div align="center">
+BIOMETRICS V3 is a Codex-first extension layer for autonomous 24/7 orchestration, policy enforcement, and operator workflows. Codex core stays upstream; BIOMETRICS adds additive runtime modules and keeps a Codex-native visual style.
 
-**Next-Generation AI Agent Orchestration Platform**
+## Codex-First Positioning
 
-[![Release](https://img.shields.io/github/v/release/Delqhi/BIOMETRICS?color=blue&label=Release)](https://github.com/Delqhi/BIOMETRICS/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Status: Active](https://img.shields.io/badge/Status-Active-success)](.)
-[![Best Practices](https://img.shields.io/badge/Best%20Practices-Feb%202026-orange)](.)
-[![Stars](https://img.shields.io/github/stars/Delqhi/BIOMETRICS?style=social)](https://github.com/Delqhi/BIOMETRICS/stargazers)
+- Codex upstream is the primary coding engine and baseline behavior.
+- BIOMETRICS provides overlay capabilities (orchestration, skills, policy, supervision, governance).
+- We do not position BIOMETRICS as a replacement coding app fork.
 
-[🚀 Quick Start](#-quick-start) • [📚 Docs](#-documentation) • [🤖 Agents](#-ai-agents) • [🏗️ Architecture](#-architecture) • [💬 Discord](https://discord.gg/biometrics)
+## Canonical Runtime
 
-</div>
+- Primary core baseline (read-only by policy): `third_party/codex-upstream/`
+- BIOMETRICS overlay runtime entrypoint: `biometrics-cli/cmd/controlplane`
+- BIOMETRICS operator tooling entrypoints: `./biometrics-onboard`, `./bin/biometrics-skills`
+- Temporary compatibility shim: `biometrics-cli/cmd/biometrics`
+  - The shim prints a deprecation notice and forwards to V3 runtime behavior.
+- Legacy V2 code is archive-only under `archive/legacy-v2`.
 
----
-
-## 🎯 What is BIOMETRICS?
-
-BIOMETRICS is an **enterprise-grade AI agent orchestration framework** built on 33 core mandates (MANDATE 0.0-0.36). It enables autonomous development swarms that work 24/7 with CEO-level quality standards.
-
-**Why BIOMETRICS?**
-- 🚀 **10x Faster Development** - Parallel agent swarms (5+ agents working simultaneously)
-- 🎯 **Zero-Defect Code** - Built-in TDD, crashtests, and quality gates
-- 📚 **Self-Documenting** - Auto-generates 500+ line guides per feature
-- 🔒 **Production-Ready** - 95% test coverage, enterprise security
-- 💰 **100% FREE** - Self-hosted, no paid API dependencies
-
----
-
-## ⚡ Quick Start
-
-Get BIOMETRICS running in **<60 seconds**:
+## Clone-to-Run (Official)
 
 ```bash
-# 1. Clone & Install
-git clone https://github.com/Delqhi/BIOMETRICS.git
+git clone <your-biometrics-repo-url> BIOMETRICS
 cd BIOMETRICS
-pnpm install
-
-# 2. Setup NVIDIA API Key (Required)
-echo 'export NVIDIA_API_KEY="nvapi-YOUR_KEY"' >> ~/.zshrc
-source ~/.zshrc
-
-# 3. Install & Authenticate OpenCode
-ppnpm install -g opencode
-opencode auth add nvidia-nim
-opencode auth add moonshot-ai
-
-# 4. Verify Installation
-pnpm run doctor
-opencode models | grep nvidia
+./biometrics-onboard
 ```
 
-**✅ Ready!** Start your first agent swarm:
+After first run, onboarding exposes `biometrics-onboard` in `~/.local/bin` (if your PATH includes it), installs missing system/project dependencies, builds artifacts, and runs smoke checks.
+Legacy bootstrap entrypoints (`./bootstrap.sh`, `./scripts/setup.sh`) are deprecated wrappers that delegate to `./biometrics-onboard`.
+
+Non-interactive/ops modes:
 
 ```bash
-opencode "Build a REST API" --agent sisyphus
+./biometrics-onboard --doctor
+./biometrics-onboard --resume
+./biometrics-onboard --non-interactive --yes
 ```
 
-> 📖 **New?** → [Complete Setup Guide](docs/setup/COMPLETE-SETUP.md) (15 min)
-
-### 📝 OpenCode Configuration Template
-
-The `.opencode/opencode.json.template` file contains the recommended OpenCode configuration for BIOMETRICS.
-
-**Setup Instructions:**
-```bash
-# After cloning the repository, copy the template:
-cp .opencode/opencode.json.template .opencode/opencode.json
-
-# Edit with your API keys:
-nano .opencode/opencode.json
-
-# Or use environment variables (recommended):
-export GOOGLE_API_KEY="your_key_here"
-export NVIDIA_API_KEY="your_key_here"
-```
-
-**Important:**
-- ✅ `.opencode/opencode.json.template` is version-controlled
-- ❌ `.opencode/opencode.json` is gitignored (contains secrets)
-- 📖 [Complete Setup Guide](docs/setup/COMPLETE-SETUP.md) for detailed instructions
-
----
-
-## 🚨 START HERE - ULTIMATE ORCHESTRATOR MANDATE
-
-**⚠️ ACHTUNG: JEDER AGENT MUSS DIESEN ABSCHNITT LESEN BEVOR ER ARBEITET!**
-
-### 🎯 DEINE ROLLE: ORCHESTRATOR FÜR BIOMETRICS
-
-**KRITISCHE REGELN (NIEMALS BRECHEN!):**
-
-1. ❌ **NIEMALS 2 Agents mit gleichem Modell parallel!**
-   - Qwen 3.5: MAX 1 Agent
-   - Kimi K2.5: MAX 1 Agent
-   - MiniMax M2.5: MAX 1 Agent
-   - **MAXIMAL 3 Agents parallel (je 1 pro Modell)**
-
-2. ❌ **NIEMALS Dateien erstellen ohne zu lesen!**
-   - IMMER zuerst `glob()` oder `ls`
-   - IMMER komplett lesen (bis letzte Zeile!)
-   - NIEMALS Duplikate!
-
-3. ❌ **NIEMALS "fertig" ohne Evidenz!**
-   - IMMER Dateiinhalt zeigen
-   - IMMER Tests machen
-   - IMMER "Sicher?"-Check!
-
-4. ❌ **NIEMALS User-Onboarding überspringen!**
-   - IMMER mit User Config erstellen
-   - IMMER API Keys erklären
-   - IMMER gemeinsam testen!
-
-### 📊 MODELL-ZUWEISUNG (PFLICHT!)
-
-| Modell | Category | Max Parallel |
-|--------|----------|--------------|
-| `qwen/qwen3.5-397b-a17b` | build, visual-engineering, writing | **1** |
-| `opencode/kimi-k2.5-free` | deep | **1** |
-| `opencode/minimax-m2.5-free` | quick, explore | **1** |
-
-### ✅ RICHTIGE PARALLEL-ARBEIT:
-```typescript
-// ✅ KORREKT (3 verschiedene Modelle):
-task(category="visual-engineering", prompt="...") // Qwen 3.5
-task(category="deep", model="opencode/kimi-k2.5-free", prompt="...") // Kimi K2.5
-task(category="quick", model="opencode/minimax-m2.5-free", prompt="...") // MiniMax
-```
-
-### 📖 PFLICHT-DATEIEN ZUM LESEN:
-1. `docs/ORCHESTRATOR-MANDATE.md` - **VOLLSTÄNDIG LESEN!**
-2. `docs/agents/AGENT-MODEL-MAPPING.md` - Modell-Zuweisung
-3. `docs/architecture/ARCHITECTURE.md` - Architektur
-4. `SETUP-CHECKLISTE.md` - Setup Checkliste
-
-### 🎯 WORKFLOW:
-1. **Lies** `docs/ORCHESTRATOR-MANDATE.md` (komplett!)
-2. **Prüfe** Setup-Status mit `SETUP-CHECKLISTE.md`
-3. **Starte** Max 3 Agents (verschiedene Modelle!)
-4. **Überwache** Sessions laufend
-5. **Mache** "Sicher?"-Check bei jedem Agent
-
-**📚 Vollständige Anleitung:** [docs/ORCHESTRATOR-MANDATE.md](docs/ORCHESTRATOR-MANDATE.md)
-
----
-
-## 🏗️ Architecture
-
-```mermaid
-graph TB
-    subgraph "BIOMETRICS Core"
-        A[OpenCode CLI] --> B[Serena MCP Orchestrator]
-        B --> C[Sisyphus - Main Coder]
-        B --> D[Prometheus - Planner]
-        B --> E[Oracle - Architect]
-        B --> F[Atlas - Heavy Lifting]
-        B --> G[Librarian - Documentation]
-    end
-    
-    subgraph "AI Models"
-        C --> H[Qwen 3.5 397B]
-        D --> H
-        E --> H
-        G --> I[OpenCode ZEN FREE]
-    end
-    
-    subgraph "Infrastructure"
-        J[26-Room Docker Network]
-        K[PostgreSQL Master]
-        L[Redis Cache]
-        M[Vault Secrets]
-    end
-    
-    A --> J
-    J --> K
-    J --> L
-    J --> M
-    
-    style A fill:#3498db,stroke:#2980b9,stroke-width:2px,color:#fff
-    style B fill:#9b59b6,stroke:#8e44ad,stroke-width:2px,color:#fff
-    style H fill:#e74c3c,stroke:#c0392b,stroke-width:2px,color:#fff
-    style J fill:#2ecc71,stroke:#27ae60,stroke-width:2px,color:#fff
-```
-
-### Core Components
-
-| Component | Role | Model | Status |
-|-----------|------|-------|--------|
-| **Sisyphus** | Main Coder | Qwen 3.5 397B | ✅ Active |
-| **Prometheus** | Strategic Planning | Qwen 3.5 397B | ✅ Active |
-| **Oracle** | Architecture Review | Qwen 3.5 397B | ✅ Active |
-| **Atlas** | Heavy Lifting | Kimi K2.5 | ✅ Active |
-| **Librarian** | Documentation | OpenCode ZEN (FREE) | ✅ Active |
-| **Explore** | Code Discovery | OpenCode ZEN (FREE) | ✅ Active |
-
----
-
-## 🚀 Features
-
-### 🤖 AI Agent Swarm System
-
-| Feature | BIOMETRICS | Traditional | Advantage |
-|---------|------------|-------------|-----------|
-| **Parallel Agents** | 5+ simultaneous | 1 sequential | **5-10x Faster** |
-| **Code Quality** | 95%+ test coverage | 60-70% typical | **Zero defects** |
-| **Documentation** | Auto-generated 500+ lines | Manual, often missing | **Always complete** |
-| **Cost** | 100% FREE (self-hosted) | $20-200/month APIs | **Save $2,400/year** |
-| **Setup Time** | <15 minutes | Hours-Days | **Instant start** |
-
-### 📋 33 Core Mandates
-
-BIOMETRICS enforces **33 non-negotiable mandates** for enterprise quality:
-
-```
-✅ MANDATE 0.0:   Immutability of Knowledge
-✅ MANDATE 0.1:   Modular Swarm System (5+ agents minimum)
-✅ MANDATE 0.2:   Reality Over Prototype (NO mocks)
-✅ MANDATE 0.3:   Omniscience Blueprint (500+ lines)
-✅ MANDATE 0.19:  Modern CLI Toolchain (ripgrep, fd, sd)
-✅ MANDATE 0.35:  NO Timeouts (Qwen 3.5 needs 120s)
-✅ MANDATE 0.36:  DEQLHI-LOOP (Infinite work mode)
-... and 26 more mandates
-```
-
-[View All 33 Mandates →](docs/best-practices/AGENTS.md)
-
-### 🛠️ Developer Experience
-
-- **One-Command Setup** - `pnpm install && pnpm run doctor`
-- **Hot Reload** - Live agent feedback loop
-- **Built-in Testing** - TDD enforced by default
-- **Auto-Documentation** - Every change documented
-- **Git Integration** - Auto-commit after every task
-- **Mobile-Friendly** - Works on any device
-
----
-
-## 📚 Documentation
-
-### Essential Guides
-
-| Guide | Description | Read Time |
-|-------|-------------|-----------|
-| [📋 Universal Blueprint](docs/UNIVERSAL-BLUEPRINT.md) | Complete system overview | 10 min |
-| [🛠️ Setup Guide](docs/setup/COMPLETE-SETUP.md) | Installation & configuration | 15 min |
-| [🤖 Agent Guide](docs/agents/) | Working with AI agents | 20 min |
-| [📖 Best Practices](docs/best-practices/) | 33 mandates explained | 30 min |
-| [🏗️ Architecture](docs/architecture/) | System design & APIs | 25 min |
-
-### 🎬 Video Tutorials
-
-<div align="center">
-
-[![BIOMETRICS Tutorial](https://img.shields.io/badge/Watch-Tutorial-red?style=for-the-badge&logo=youtube)](https://youtube.com/biometrics-tutorial)
-[![Live Demo](https://img.shields.io/badge/Live-Demo-blue?style=for-the-badge&logo=stream)](https://biometrics.live)
-
-**Coming Soon:**
-- 🎥 Getting Started (5 min)
-- 🎥 Building Your First Agent Swarm (15 min)
-- 🎥 Advanced Orchestration Patterns (30 min)
-
-</div>
-
-### 📖 Complete Documentation
-
-```
-docs/
-├── setup/           # Installation & setup (5 files)
-├── config/          # Provider configurations (11 files)
-├── agents/          # Agent guides & skills (12 files)
-├── best-practices/  # Mandates & workflows (18 files)
-├── architecture/    # System design & APIs (26 files)
-├── features/        # Product capabilities (32 files)
-└── advanced/        # Blockchain, AI, IoT (27 files)
-```
-
-**Total:** 161+ files, 9,606+ lines of documentation
-
-[Explore All Docs →](docs/)
-
----
-
-## 📊 Performance Benchmarks
-
-| Metric | BIOMETRICS | Industry Standard | Improvement |
-|--------|------------|-------------------|-------------|
-| **Development Speed** | 5-10 tasks/hour | 1-2 tasks/hour | **5x Faster** |
-| **Code Quality** | 95%+ test coverage | 60-70% coverage | **35% Better** |
-| **Bug Rate** | 0.1 per 1000 lines | 5-10 per 1000 lines | **50x Fewer** |
-| **Documentation** | 100% complete | 40-60% complete | **60% More** |
-| **Cost** | $0 (self-hosted) | $20-200/month | **100% FREE** |
-
-*Based on internal benchmarks from 73 commits, 29 code files, 161+ documentation files*
-
----
-
-## 🤝 Used By
-
-<div align="center">
-
-**Join 100+ developers using BIOMETRICS**
-
-[![Star on GitHub](https://img.shields.io/github/stars/Delqhi/BIOMETRICS?style=social)](https://github.com/Delqhi/BIOMETRICS/stargazers)
-[![Fork on GitHub](https://img.shields.io/github/forks/Delqhi/BIOMETRICS?style=social)](https://github.com/Delqhi/BIOMETRICS/network/members)
-
-**Companies & Projects:**
-- 🏢 SIN Enterprise (AI Automation)
-- 🏢 Delqhi Platform (Developer Tools)
-- 🏢 Simone Webshop (E-Commerce)
-- 🏢 50+ Open Source Projects
-
-</div>
-
----
-
-## 👥 Contributing
-
-We welcome contributions! Here's how to get started:
-
-### 🚀 Quick Start for Contributors
+State and report artifacts:
+- `.biometrics/onboard/state.json`
+- `.biometrics/onboard/report.json`
+- `.biometrics/onboard/events.jsonl`
+`report.json` may include `warnings[]` for non-blocking remediation items (for example PATH export hints).
+
+## Quick Start (Manual Path)
 
 ```bash
-# 1. Fork the repository
-# 2. Clone your fork
-git clone https://github.com/YOUR_USERNAME/BIOMETRICS.git
-cd BIOMETRICS
-
-# 3. Create a branch
-git checkout -b feature/your-feature
-
-# 4. Make changes & test
-npm test
-
-# 5. Commit (conventional commits)
-git commit -m "feat: add your feature"
-
-# 6. Push & create PR
-git push origin feature/your-feature
+make env
+make build
+./bin/biometrics-cli
 ```
 
-### 📋 Contribution Guidelines
+BIOMETRICS overlay API default endpoint: `http://127.0.0.1:59013`  
+Override bind address explicitly with `BIOMETRICS_BIND_ADDR` when remote binding is required.
 
-- ✅ Follow the [33 Mandates](docs/best-practices/AGENTS.md)
-- ✅ Write tests for new features (95%+ coverage required)
-- ✅ Update documentation (500+ lines per feature)
-- ✅ Use conventional commits (`feat:`, `fix:`, `docs:`)
-- ✅ Pass all CI checks before merging
+## OpenCode (Repo-First Packaging)
 
-[Read Full Contributing Guide →](.github/CONTRIBUTING.md)
+BIOMETRICS ships OpenCode project assets in-repo (for example `.opencode/` templates and agent definitions). You should not need a separate “plugin installer” step for normal operation.
 
-### 🎯 Good First Issues
+Operational notes:
+- Non-interactive execution uses `opencode run` (OpenCode `>= 1.2.x`).
+- Execution directory resolution is `BIOMETRICS_OPENCODE_DIR` → `BIOMETRICS_WORKSPACE` → process working directory.
+- Integration details: `docs/OPENCODE.md`.
+- BIOMETRICS also ships a full OpenCode plugin under `.opencode/plugins/biometrics.ts` (tools `biometrics.*`).
 
-<div align="center">
+One-command launcher (prints the plugin flow, optionally starts opencode):
 
-[![Good First Issues](https://img.shields.io/github/issues/Delqhi/BIOMETRICS/good%20first%20issue?color=green&label=Good%20First%20Issues)](https://github.com/Delqhi/BIOMETRICS/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
-[![Help Wanted](https://img.shields.io/github/issues/Delqhi/BIOMETRICS/help%20wanted?color=blue&label=Help%20Wanted)](https://github.com/Delqhi/BIOMETRICS/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
-
-**Need help?** Join our [Discord](https://discord.gg/biometrics)
-
-</div>
-
----
-
-## 📈 Project Stats
-
-<div align="center">
-
-| Metric | Value |
-|--------|-------|
-| **Total Commits** | 73 |
-| **Contributors** | 2 (Jeremy, Delqhi-Platform) |
-| **Code Files** | 29 |
-| **Documentation** | 161+ files, 9,606+ lines |
-| **Test Coverage** | 95%+ |
-| **Setup Time** | ~15 minutes |
-| **License** | MIT |
-
-[![GitHub Activity](https://ghchart.rshah.org/Delqhi/BIOMETRICS)](https://github.com/Delqhi/BIOMETRICS)
-
-</div>
-
----
-
-## 🔐 Security
-
-BIOMETRICS takes security seriously:
-
-- ✅ **Zero-Trust Architecture** - All services isolated
-- ✅ **Secrets Management** - Vault integration (never commit secrets)
-- ✅ **Regular Audits** - Automated security scanning
-- ✅ **CVE Monitoring** - Real-time vulnerability detection
-- ✅ **SOC2 Ready** - Enterprise compliance built-in
-
-[Security Policy →](.github/SECURITY.md)
-
----
-
-## 📄 License
-
-BIOMETRICS is released under the [MIT License](LICENSE):
-
-```
-MIT License
-
-Copyright (c) 2026 BIOMETRICS Team
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+```bash
+./scripts/opencode-biometrics.sh
+./scripts/opencode-biometrics.sh --start
 ```
 
----
+Optional web-v3 dev mode:
 
-<div align="center">
+```bash
+cd biometrics-cli/web-v3
+pnpm install --frozen-lockfile
+pnpm run dev
+```
 
-## 🚀 Ready to Get Started?
+Public website dev mode (Next.js + Nextra):
 
-[📖 Read the Docs](docs/) • [🎯 Quick Start](#-quick-start) • [💬 Join Discord](https://discord.gg/biometrics) • [🐛 Report Issue](https://github.com/Delqhi/BIOMETRICS/issues)
+```bash
+cd website
+pnpm install --frozen-lockfile
+pnpm run dev
+```
 
----
+Build web-v3 bundle served by Go runtime:
 
-**Made with ❤️ by the BIOMETRICS Team**
+```bash
+cd biometrics-cli/web-v3
+pnpm install --frozen-lockfile
+pnpm run build
+```
 
-[![GitHub stars](https://img.shields.io/github/stars/Delqhi/BIOMETRICS?style=social&label=Star)](https://github.com/Delqhi/BIOMETRICS)
-[![GitHub forks](https://img.shields.io/github/forks/Delqhi/BIOMETRICS?style=social&label=Fork)](https://github.com/Delqhi/BIOMETRICS)
-[![GitHub issues](https://img.shields.io/github/issues/Delqhi/BIOMETRICS?logo=github)](https://github.com/Delqhi/BIOMETRICS/issues)
-[![Twitter Follow](https://img.shields.io/twitter/follow/biometrics?style=social)](https://twitter.com/biometrics)
+## API v1 (Canonical)
 
-**Version:** 1.0.0 | **Last Updated:** February 2026 | **Best Practices:** Feb 2026
+- `POST /api/v1/runs`
+  - `mode` values: `autonomous` (default) or `supervised`
+  - Optional run payload fields: `scheduler_mode`, `max_parallelism`, `model_preference`, `fallback_chain`, `model_id`, `context_budget`, `blueprint_profile`, `blueprint_modules`, `bootstrap`
+- `GET /api/v1/runs`
+- `GET /api/v1/runs/{run_id}`
+- `GET /api/v1/runs/{run_id}/tasks`
+- `GET /api/v1/runs/{run_id}/graph`
+- `GET /api/v1/runs/{run_id}/attempts`
+- `POST /api/v1/runs/{run_id}/pause`
+- `POST /api/v1/runs/{run_id}/resume`
+- `POST /api/v1/runs/{run_id}/cancel`
+- `GET /api/v1/blueprints`
+- `GET /api/v1/blueprints/{profile}`
+- `GET /api/v1/models`
+- `GET /api/v1/agents/background`
+- `POST /api/v1/agents/background`
+- `GET /api/v1/agents/background/{job_id}`
+- `POST /api/v1/agents/background/{job_id}/cancel`
+- `GET /api/v1/auth/codex/status`
+- `POST /api/v1/auth/codex/login`
+- `POST /api/v1/auth/codex/logout`
+- `GET /api/v1/projects`
+- `POST /api/v1/projects/{project_id}/bootstrap`
+- `GET /api/v1/fs/tree?path=`
+- `GET /api/v1/fs/file?path=`
+- `GET /api/v1/events` (SSE)
+- `GET /api/v1/ws` (WebSocket)
+- `GET /health/ready`
+- `GET /metrics`
 
-</div>
+OpenAPI: `docs/api/openapi-v3-controlplane.yaml`
+
+Readiness payload fields include:
+- `opencode_available`
+- `codex_auth_ready`
+- `provider_status`
+- `onboard_last_status` (optional)
+
+## Contracts
+
+- `docs/specs/contracts/run.schema.json`
+- `docs/specs/contracts/task.schema.json`
+- `docs/specs/contracts/event.schema.json`
+- `docs/specs/contracts/attempt.schema.json`
+- `docs/specs/contracts/graph.schema.json`
+- `docs/specs/contracts/error.schema.json`
+- `docs/specs/contracts/model.schema.json`
+- `docs/specs/index.json`
+
+## Documentation
+
+- Migration guide: `docs/guides/MIGRATION_V3.md`
+- Operator runbook: `docs/guides/OPERATOR_RUNBOOK_V3.md`
+- Visual regression guard: `docs/guides/WEB_VISUAL_REGRESSION.md`
+- Codex upstream-first strategy: `docs/guides/CODEX_UPSTREAM_FIRST_STRATEGY.md`
+- Codex extension architecture: `docs/guides/CODEX_EXTENSION_ARCHITECTURE.md`
+- Codex release/security governance: `docs/guides/CODEX_RELEASE_SECURITY_GOVERNANCE.md`
+- Cloudflare enterprise web blueprint: `docs/guides/CLOUDFLARE_ENTERPRISE_WEB_BLUEPRINT.md`
+- Codex upstream watch lock: `third_party/codex-upstream/upstream.lock.json`
+- Release notes: `docs/releases/V3_CUTOVER_COMPLETE.md`
+- OpenCode integration: `docs/OPENCODE.md`
+- Blueprint catalog: `docs/blueprints/CATALOG.md`
+- Blueprint source mapping: `docs/blueprints/SOURCE_MAP.md`
+
+## Environment Policy (Hybrid)
+
+- `.env.example` is the tracked canonical template.
+- Local `.env` usage is supported.
+- `.env` is ignored and must not be committed with real secrets.
+- Bootstrap from template:
+
+```bash
+./scripts/init-env.sh
+```
+
+## Build and Test
+
+```bash
+make test
+```
+
+CI enforces Go build/test, web-v3 build, link checks, migration gate checks, and tracked-file secret scanning.
+
+Release gate check (local):
+
+```bash
+./scripts/release/check-gates.sh
+```
+
+Release closure automation:
+
+```bash
+git switch -c codex/v3.1-ga-closure
+./scripts/release/run-ga-closure-program.sh
+# optional final tag in same orchestrated flow:
+./scripts/release/run-ga-closure-program.sh --tag
+```
+
+Manual step-by-step (equivalent):
+
+```bash
+git switch -c codex/v3.1-ga-closure
+./scripts/release/lock-rc-scope.sh
+./scripts/release/run-gate-a.sh --write-report
+./scripts/release/cleanup-soak-runs.sh --older-than-minutes 30
+./scripts/release/run-rehearsal-program.sh
+# or explicit control:
+./scripts/release/start-soak.sh --profile rehearsal-6h
+./scripts/release/soak-status.sh --profile rehearsal-6h
+./scripts/release/stop-soak.sh --profile rehearsal-6h
+./scripts/release/run-soak-72h.sh
+./scripts/release/run-gate-b.sh --p0-count 0 --p1-count 0 --write-report
+./scripts/release/run-ga-cut.sh
+```
+
+Web V3 E2E:
+
+```bash
+cd biometrics-cli/web-v3
+pnpm run test:e2e
+```
+
+Web V3 visual guard:
+
+```bash
+cd biometrics-cli/web-v3
+pnpm run test:visual
+```
+
+Public website quality checks:
+
+```bash
+cd website
+pnpm run test:content
+pnpm run test:e2e
+pnpm run test:lighthouse
+```
+
+Public website deploy (Cloudflare Pages):
+
+```bash
+cd website
+pnpm run cf:project:create    # first-time only
+pnpm run deploy:cloudflare
+```
+
+## Soak Validation (V3.1)
+
+Run a local soak profile and evaluate gates:
+
+```bash
+PROFILE_LABEL=rehearsal-6h DURATION_SECONDS=1800 RUN_INTERVAL_SECONDS=10 GOAL_PARTS=50 ./scripts/run-soak.sh
+./scripts/analyze-soak.py --summary logs/soak/soak-summary-<timestamp>.json
+./scripts/release/update-soak-report.py --summary logs/soak/soak-summary-<timestamp>.json
+```
+
+Default release thresholds:
+- run success rate `>= 0.98`
+- timed-out runs `== 0`
+- dispatch latency p95 estimate `<= 250ms`
+- fallback rate per run `<= 0.05`
+- backpressure signals per run `<= 20`
+
+SSE compatibility note:
+- `/api/v1/events` emits both typed SSE events and `message` compatibility frames with identical event IDs.
+- Runtime operations emit opencode installer events:
+  - `opencode.install.started|succeeded|failed`
+- Runtime auth/model routing emits:
+  - `auth.codex.login.started|succeeded|failed`
+  - `model.selected`
+  - `model.fallback.triggered|exhausted`
+  - `context.compiled`
+- Supervised runs emit runtime checkpoint events:
+  - `run.supervision.checkpoint`
+- Onboarding step telemetry is local-only in `.biometrics/onboard/events.jsonl`.
+
+## Shim Deprecation
+
+`cmd/biometrics` remains a temporary compatibility shim in V3.1 and is scheduled for removal in V3.2 on **April 22, 2026**.

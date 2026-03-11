@@ -1,0 +1,84 @@
+---
+title: BIOMETRICS Webseite (DE)
+description: Deutsche Einstiegsversion für Installation und ersten erfolgreichen Run.
+---
+
+import { TrackButton } from '../../components/TrackButton'
+import { LocaleSwitch } from '../../components/LocaleSwitch'
+
+<div className="hero hero-enterprise" data-testid="landing-hero-de">
+  <div className="hero-kicker">ENTERPRISE CONTROL PLANE · OPEN STACK · KEIN LOCK-IN</div>
+  <LocaleSwitch enPath="/" dePath="/de" />
+  <h1>Von KI-Experimenten zu belastbarem Produktionsbetrieb.</h1>
+  <p className="hero-copy">
+    BIOMETRICS verbindet Geschwindigkeit mit Kontrolle: schneller Erst-Run, klare Runtime-Steuerung und Governance, die auch im Enterprise-Betrieb trägt.
+  </p>
+  <div className="hero-actions">
+    <TrackButton href="/de/quickstart" event="cta_click" label="de-quickstart" testID="cta-quickstart-de">
+      Schnellstart beginnen
+    </TrackButton>
+    <TrackButton href="/de/install" event="cta_click" label="de-install" className="hero-ghost" testID="cta-install-de">
+      Installationspfade
+    </TrackButton>
+  </div>
+  <div className="hero-metrics">
+    <div className="metric-pill">
+      <strong>5-10 min</strong>
+      <span>bis zum ersten erfolgreichen Run</span>
+    </div>
+    <div className="metric-pill">
+      <strong>API v1</strong>
+      <span>stabile, additive Contracts</span>
+    </div>
+    <div className="metric-pill">
+      <strong>24/7 Ops</strong>
+      <span>pause/resume/cancel integriert</span>
+    </div>
+  </div>
+</div>
+
+<div className="signal-strip">
+  <span>Offene Architektur</span>
+  <span>Enterprise-Guardrails</span>
+  <span>Sicherheits-Defaults</span>
+  <span>Operator-fokussierte Doku</span>
+</div>
+
+<div className="executive-board">
+  <article className="executive-copy">
+    <h3>Von einzelnen Prompts zu belastbarer Steuerung</h3>
+    <p>
+      BIOMETRICS verbindet KI-Geschwindigkeit mit klarer Führbarkeit: harte Runtime-Regeln, nachvollziehbare Release-Gates
+      und operative Steuerung, die im Enterprise nicht bricht.
+    </p>
+    <ul className="executive-list">
+      <li>Policy-gesteuerte Runtime als Standard</li>
+      <li>Qualitäts- und Release-Evidence in einer Pipeline</li>
+      <li>Ops-Kontrolle mit Incident-Response-Fokus</li>
+    </ul>
+  </article>
+  <aside className="control-board" aria-label="betriebsmodell">
+    <div className="board-row">
+      <span>Policy-Abdeckung</span>
+      <strong>93%</strong>
+    </div>
+    <div className="board-row">
+      <span>Gate-Erfolgsrate</span>
+      <strong>98.4%</strong>
+    </div>
+    <div className="board-row">
+      <span>Median Recovery</span>
+      <strong>7m</strong>
+    </div>
+    <div className="board-row">
+      <span>Deployment-Takt</span>
+      <strong>Täglich</strong>
+    </div>
+  </aside>
+</div>
+
+## Kritische Einstiege
+
+- [Schnellstart (5-10 min)](/de/quickstart)
+- [Installations-Hub](/de/install)
+- [Vollständige Doku (EN)](/docs)

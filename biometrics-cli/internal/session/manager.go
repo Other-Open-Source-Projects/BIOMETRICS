@@ -2,10 +2,12 @@ package session
 
 import (
 	"biometrics-cli/internal/metrics"
+	"biometrics-cli/internal/paths"
 	"biometrics-cli/internal/state"
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 )
@@ -125,14 +127,18 @@ func (m *Manager) Save() error {
 		return err
 	}
 
-	return os.WriteFile("/Users/jeremy/.sisyphus/sessions.json", data, 0644)
+	path := paths.SisyphusSessionsPath()
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0644)
 }
 
 func (m *Manager) Load() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	data, err := os.ReadFile("/Users/jeremy/.sisyphus/sessions.json")
+	data, err := os.ReadFile(paths.SisyphusSessionsPath())
 	if err != nil {
 		return err
 	}

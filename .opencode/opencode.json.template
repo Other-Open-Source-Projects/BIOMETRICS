@@ -11,79 +11,79 @@
   "agent": {
     "general": {
       "model": "google/gemini-3.1-pro-preview-customtools",
-      "instruction": "/Users/jeremy/.config/opencode/instructions/orchestrator.md"
+      "instruction": ".opencode/instructions/orchestrator.md"
     },
     "plan": {
       "model": "google/gemini-3.1-pro-preview",
-      "instruction": "/Users/jeremy/.config/opencode/instructions/planner.md"
+      "instruction": ".opencode/instructions/planner.md"
     },
     "build": {
       "model": "google/gemini-3.1-pro-preview-customtools",
-      "instruction": "/Users/jeremy/.config/opencode/instructions/worker-code.md"
+      "instruction": ".opencode/instructions/worker-code.md"
     },
     "explore": {
       "model": "google/gemini-3-flash-preview",
-      "instruction": "/Users/jeremy/.config/opencode/instructions/worker-code.md"
+      "instruction": ".opencode/instructions/worker-code.md"
     },
     "librarian": {
       "model": "google/gemini-3-flash-preview",
-      "instruction": "/Users/jeremy/.config/opencode/instructions/worker-code.md"
+      "instruction": ".opencode/instructions/worker-code.md"
     },
     "oracle": {
       "model": "google/gemini-3.1-pro-preview-customtools",
-      "instruction": "/Users/jeremy/.config/opencode/instructions/orchestrator.md"
+      "instruction": ".opencode/instructions/orchestrator.md"
     },
     "metis": {
       "model": "google/gemini-3-flash-preview",
-      "instruction": "/Users/jeremy/.config/opencode/instructions/planner.md"
+      "instruction": ".opencode/instructions/planner.md"
     },
     "momus": {
       "model": "google/gemini-3-flash-preview",
-      "instruction": "/Users/jeremy/.config/opencode/instructions/planner.md"
+      "instruction": ".opencode/instructions/planner.md"
     },
     "sisyphus": {
       "model": "google/gemini-3.1-pro-preview-customtools",
-      "instruction": "/Users/jeremy/.config/opencode/instructions/worker-code.md"
+      "instruction": ".opencode/instructions/worker-code.md"
     },
     "sisyphus-junior": {
       "model": "google/gemini-3.1-pro-preview-customtools",
-      "instruction": "/Users/jeremy/.config/opencode/instructions/worker-code.md"
+      "instruction": ".opencode/instructions/worker-code.md"
     },
     "artistry": {
       "model": "google/gemini-3.1-pro-preview",
-      "instruction": "/Users/jeremy/.config/opencode/instructions/td-media.md"
+      "instruction": ".opencode/instructions/td-media.md"
     },
     "deep": {
       "model": "google/gemini-3.1-pro-preview-customtools",
-      "instruction": "/Users/jeremy/.config/opencode/instructions/worker-code.md"
+      "instruction": ".opencode/instructions/worker-code.md"
     },
     "ultrabrain": {
       "model": "google/gemini-3.1-pro-preview",
-      "instruction": "/Users/jeremy/.config/opencode/instructions/orchestrator.md"
+      "instruction": ".opencode/instructions/orchestrator.md"
     },
     "visual-engineering": {
       "model": "google/gemini-3.1-pro-preview",
-      "instruction": "/Users/jeremy/.config/opencode/instructions/worker-code.md"
+      "instruction": ".opencode/instructions/worker-code.md"
     },
     "quick": {
       "model": "google/gemini-3-flash-preview",
-      "instruction": "/Users/jeremy/.config/opencode/instructions/worker-code.md"
+      "instruction": ".opencode/instructions/worker-code.md"
     },
     "unspecified-low": {
       "model": "google/gemini-3.1-pro-preview-customtools",
-      "instruction": "/Users/jeremy/.config/opencode/instructions/worker-code.md"
+      "instruction": ".opencode/instructions/worker-code.md"
     },
     "unspecified-high": {
       "model": "google/gemini-3.1-pro-preview-customtools",
-      "instruction": "/Users/jeremy/.config/opencode/instructions/worker-code.md"
+      "instruction": ".opencode/instructions/worker-code.md"
     },
     "writing": {
       "model": "google/gemini-3.1-pro-preview",
-      "instruction": "/Users/jeremy/.config/opencode/instructions/worker-code.md"
+      "instruction": ".opencode/instructions/worker-code.md"
     },
     "td-agent": {
       "model": "google/gemini-3.1-pro-preview",
-      "instruction": "/Users/jeremy/.config/opencode/instructions/td-media.md"
+      "instruction": ".opencode/instructions/td-media.md"
     }
   },
   "mcp": {
@@ -107,7 +107,7 @@
       ],
       "enabled": true,
       "environment": {
-        "TAVILY_API_KEY": "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"
+        "TAVILY_API_KEY": ""
       }
     },
     "canva": {
@@ -151,15 +151,6 @@
       "url": "https://mcp.linear.app/sse",
       "enabled": true
     },
-    "singularity": {
-      "type": "local",
-      "command": [
-        "node",
-        "/Users/jeremy/.singularity/CLI/bin/singularity.js",
-        "mcp"
-      ],
-      "enabled": true
-    },
     "gh_grep": {
       "type": "remote",
       "url": "https://mcp.grep.app",
@@ -193,16 +184,6 @@
     "sin_clawdbot": {
       "type": "remote",
       "url": "https://clawdbot-ceo.delqhi.com",
-      "enabled": true
-    },
-    "sin_survey_worker": {
-      "type": "remote",
-      "url": "https://survey.delqhi.com",
-      "enabled": true
-    },
-    "sin_captcha_worker": {
-      "type": "remote",
-      "url": "https://captcha.delqhi.com",
       "enabled": true
     },
     "sin_website_worker": {
@@ -497,7 +478,7 @@
       "name": "Modal GLM-5",
       "options": {
         "baseURL": "https://api.us-west-2.modal.direct/v1",
-        "apiKey": "modalresearch_GWjUxYY09uNBYp3W5J8E3cf6_T1o_TPOAZS_gwnWeqo"
+        "apiKey": ""
       },
       "models": {
         "zai-org/GLM-5-FP8": {

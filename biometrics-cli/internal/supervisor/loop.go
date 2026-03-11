@@ -1,5 +1,8 @@
 package supervisor
 
+// Deprecated: This loop implementation is legacy and not part of the BIOMETRICS V3 control-plane runtime.
+// Prefer `biometrics-cli/cmd/controlplane` scheduling and `biometrics-cli/internal/executor/opencode` for OpenCode execution.
+
 import (
 	"bufio"
 	"context"
@@ -98,7 +101,12 @@ func (l *BiometricsLoop) executeTask(ctx context.Context, task *project.Task) er
 	l.logger.Info("Spawning agent process", logging.String("trace_id", traceID))
 
 	// Prepare opencode command
-	cmd := exec.CommandContext(ctx, "opencode", "--agent", "sisyphus", task.Description)
+	args := []string{"run", "--agent", "sisyphus"}
+	if dir := resolveOpenCodeRunDir(); dir != "" {
+		args = append(args, "--dir", dir)
+	}
+	args = append(args, task.Description)
+	cmd := exec.CommandContext(ctx, "opencode", args...)
 	cmd.Env = append(os.Environ(), "X_TRACE_ID="+traceID)
 
 	// Connect to stdin/stdout/stderr
@@ -168,4 +176,24 @@ func (l *BiometricsLoop) verifyCompliance() error {
 
 	l.logger.Info("Compliance check PASSED")
 	return nil
+}
+
+func resolveOpenCodeRunDir() string {
+	for _, candidate := range []string{
+		strings.TrimSpace(os.Getenv("BIOMETRICS_OPENCODE_DIR")),
+		strings.TrimSpace(os.Getenv("BIOMETRICS_WORKSPACE")),
+	} {
+		if candidate == "" {
+			continue
+		}
+		if stat, err := os.Stat(candidate); err == nil && stat.IsDir() {
+			return candidate
+		}
+	}
+	if cwd, err := os.Getwd(); err == nil {
+		if stat, statErr := os.Stat(cwd); statErr == nil && stat.IsDir() {
+			return cwd
+		}
+	}
+	return ""
 }

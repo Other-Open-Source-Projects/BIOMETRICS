@@ -2,6 +2,7 @@ package selfhealing
 
 import (
 	"biometrics-cli/internal/metrics"
+	"biometrics-cli/internal/paths"
 	"biometrics-cli/internal/state"
 	"fmt"
 	"os"
@@ -88,7 +89,7 @@ func (s *SelfHealer) recoverSerena() error {
 }
 
 func (s *SelfHealer) checkOpenCode() error {
-	cmd := exec.Command("opencode", "version")
+	cmd := exec.Command("opencode", "--version")
 	return cmd.Run()
 }
 
@@ -98,7 +99,7 @@ func (s *SelfHealer) recoverOpenCode() error {
 }
 
 func (s *SelfHealer) checkDatabase() error {
-	_, err := os.Stat("/Users/jeremy/.sisyphus/biometrics.db")
+	_, err := os.Stat(paths.SisyphusDBPath("biometrics.db"))
 	return err
 }
 
