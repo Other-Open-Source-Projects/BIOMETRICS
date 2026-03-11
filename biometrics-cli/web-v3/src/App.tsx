@@ -293,7 +293,7 @@ type OptimizerApplyResult = {
   run: OrchestratorRun;
 };
 
-type WorkspaceView = "new-thread" | "skills" | "automations" | "orchestrator";
+type WorkspaceView = "dashboard" | "settings" | "orchestrator";
 type OrchestratorPane = "backend" | "frontend" | "orchestrator";
 
 type OrchestratorSessionAgentState = {
@@ -669,7 +669,7 @@ export default function App() {
   const [optimizerRecommendations, setOptimizerRecommendations] = useState<OptimizerRecommendation[]>([]);
   const [optimizerActiveID, setOptimizerActiveID] = useState("");
   const [optimizerBusy, setOptimizerBusy] = useState(false);
-  const [workspaceView, setWorkspaceView] = useState<WorkspaceView>("new-thread");
+  const [workspaceView, setWorkspaceView] = useState<WorkspaceView>("dashboard");
   const [orchestratorSession, setOrchestratorSession] = useState<OrchestratorSessionState | null>(null);
   const [orchestratorMessages, setOrchestratorMessages] = useState<OrchestratorSessionMessage[]>([]);
   const [orchestratorCursor, setOrchestratorCursor] = useState(0);
@@ -684,6 +684,8 @@ export default function App() {
 
   const [selectedProject, setSelectedProject] = useState("biometrics");
   const [selectedRun, setSelectedRun] = useState("");
+  const [runQuery, setRunQuery] = useState("");
+  const [showAllRuns, setShowAllRuns] = useState(false);
   const [selectedBlueprintProfile, setSelectedBlueprintProfile] = useState("");
   const [selectedBlueprintModules, setSelectedBlueprintModules] = useState<string[]>([]);
   const [enableBootstrap, setEnableBootstrap] = useState(false);
@@ -725,6 +727,24 @@ export default function App() {
   });
 
   const selectedRunObject = useMemo(() => runs.find((run) => run.id === selectedRun), [runs, selectedRun]);
+  const visibleRuns = useMemo(() => {
+    const query = runQuery.trim().toLowerCase();
+    let list = runs;
+    if (query) {
+      list = list.filter((run) => {
+        return (
+          run.id.toLowerCase().includes(query) ||
+          run.project_id.toLowerCase().includes(query) ||
+          run.goal.toLowerCase().includes(query) ||
+          run.status.toLowerCase().includes(query)
+        );
+      });
+    }
+    if (!showAllRuns) {
+      list = list.slice(0, 12);
+    }
+    return list;
+  }, [runs, runQuery, showAllRuns]);
 
   const selectedProfile = useMemo(
     () => blueprints.find((profile) => profile.id === selectedBlueprintProfile),
@@ -2374,32 +2394,24 @@ export default function App() {
         <section className="panel sidebar-nav-panel">
           <button
             type="button"
-            className={`sidebar-nav-item ${workspaceView === "new-thread" ? "active" : ""}`}
-            onClick={() => setWorkspaceView("new-thread")}
+            data-testid="sidebar-dashboard"
+            className={`sidebar-nav-item ${workspaceView === "dashboard" ? "active" : ""}`}
+            onClick={() => setWorkspaceView("dashboard")}
           >
             <span className="button-inline">
               <AppIcon name="command" />
-              Neuer Thread
+              Dashboard
             </span>
           </button>
           <button
             type="button"
-            className={`sidebar-nav-item ${workspaceView === "skills" ? "active" : ""}`}
-            onClick={() => setWorkspaceView("skills")}
-          >
-            <span className="button-inline">
-              <AppIcon name="skills" />
-              Fähigkeiten
-            </span>
-          </button>
-          <button
-            type="button"
-            className={`sidebar-nav-item ${workspaceView === "automations" ? "active" : ""}`}
-            onClick={() => setWorkspaceView("automations")}
+            data-testid="sidebar-settings"
+            className={`sidebar-nav-item ${workspaceView === "settings" ? "active" : ""}`}
+            onClick={() => setWorkspaceView("settings")}
           >
             <span className="button-inline">
               <AppIcon name="scheduler" />
-              Automatisierungen
+              Settings
             </span>
           </button>
           <button
@@ -2462,7 +2474,7 @@ export default function App() {
           </label>
 
           <label className="field-stack">
-            <span>Mode</span>
+            <span>Scheduler</span>
             <select value={schedulerMode} onChange={(e) => setSchedulerMode(e.target.value as SchedulerMode)}>
               <option value="dag_parallel_v1">dag_parallel_v1</option>
               <option value="serial">serial</option>
@@ -2481,106 +2493,13 @@ export default function App() {
             />
           </label>
 
-          <label className="field-stack">
-            <span>Primary Model Provider</span>
-            <select value={modelPreference} onChange={(e) => setModelPreference(e.target.value)}>
-              {(modelCatalog?.providers ?? []).map((provider) => (
-                <option key={provider.id} value={provider.id}>
-                  {provider.id} ({provider.status})
-                </option>
-              ))}
-              {!modelCatalog && <option value="codex">codex</option>}
-            </select>
-          </label>
-
-          <label className="field-stack">
-            <span>Fallback Chain (comma-separated)</span>
-            <input value={fallbackChainInput} onChange={(e) => setFallbackChainInput(e.target.value)} />
-          </label>
-
-          <label className="field-stack">
-            <span>Model ID (optional)</span>
-            <input value={modelID} onChange={(e) => setModelID(e.target.value)} />
-          </label>
-
-          <label className="field-stack">
-            <span>Context Budget</span>
-            <input
-              type="number"
-              min={1000}
-              max={200000}
-              value={contextBudget}
-              onChange={(e) => setContextBudget(Number(e.target.value) || 24000)}
-            />
-          </label>
-        </section>
-
-        <section className="panel">
-          <HeaderTitle icon="skills">Skills</HeaderTitle>
-          <label className="field-stack">
-            <span>Selection Mode</span>
-            <select
-              value={skillSelectionMode}
-              onChange={(e) => setSkillSelectionMode(e.target.value as SkillSelectionMode)}
-            >
-              <option value="auto">auto</option>
-              <option value="explicit">explicit</option>
-              <option value="off">off</option>
-            </select>
-          </label>
-          <div className="module-grid">
-            {skillsCatalog.map((skill) => (
-              <label key={skill.name} className="toggle-row module-row">
-                <input
-                  type="checkbox"
-                  checked={selectedSkills.includes(skill.name)}
-                  disabled={!skill.enabled || skillSelectionMode === "off"}
-                  onChange={() => toggleSkill(skill.name)}
-                />
-                <span>{skill.name}</span>
-              </label>
-            ))}
-          </div>
-        </section>
-
-        <section className="panel">
-          <HeaderTitle icon="blueprint">Blueprint</HeaderTitle>
-          <select
-            value={selectedBlueprintProfile}
-            onChange={(e) => {
-              setSelectedBlueprintProfile(e.target.value);
-              setSelectedBlueprintModules([]);
-            }}
-          >
-            <option value="">No profile</option>
-            {blueprints.map((profile) => (
-              <option key={profile.id} value={profile.id}>
-                {profile.name} ({profile.version})
-              </option>
-            ))}
-          </select>
-
-          <label className="toggle-row">
-            <input
-              type="checkbox"
-              checked={enableBootstrap}
-              onChange={(e) => setEnableBootstrap(e.target.checked)}
-              disabled={!selectedBlueprintProfile}
-            />
-            <span>Bootstrap on run start</span>
-          </label>
-
-          <div className="module-grid">
-            {selectedProfile?.modules.map((module) => (
-              <label key={module.id} className="toggle-row module-row">
-                <input
-                  type="checkbox"
-                  checked={selectedBlueprintModules.includes(module.id)}
-                  onChange={() => toggleModule(module.id)}
-                />
-                <span>{module.name}</span>
-              </label>
-            ))}
+          <div className="actions">
+            <button type="button" className="ghost-command" onClick={() => setWorkspaceView("settings")}>
+              <span className="button-inline">
+                <AppIcon name="files" />
+                Advanced Settings
+              </span>
+            </button>
           </div>
         </section>
 
@@ -2589,8 +2508,19 @@ export default function App() {
             <HeaderTitle icon="runs">Runs</HeaderTitle>
             <span className="chip">{runs.length}</span>
           </div>
+          <div className="run-list-controls">
+            <input
+              aria-label="Filter runs"
+              placeholder="Filter (id / goal / status)"
+              value={runQuery}
+              onChange={(e) => setRunQuery(e.target.value)}
+            />
+            <button type="button" className="ghost-command" onClick={() => setShowAllRuns((v) => !v)}>
+              {showAllRuns ? "Show less" : "Show all"}
+            </button>
+          </div>
           <div className="run-list" data-testid="runs-list">
-            {runs.map((run) => {
+            {visibleRuns.map((run) => {
               const statusClass = normalizeStatusClass(run.status);
               return (
                 <button
@@ -2673,6 +2603,117 @@ export default function App() {
                     Kill Switch
                   </span>
                 </button>
+              </div>
+            </section>
+          </>
+        ) : workspaceView === "settings" ? (
+          <>
+            <section className="panel">
+              <HeaderTitle icon="scheduler">Advanced Run Settings</HeaderTitle>
+              <p className="hint-text">
+                Keep the dashboard focused. Configure providers, blueprints and skills here.
+              </p>
+
+              <label className="field-stack">
+                <span>Primary Model Provider</span>
+                <select value={modelPreference} onChange={(e) => setModelPreference(e.target.value)}>
+                  {(modelCatalog?.providers ?? []).map((provider) => (
+                    <option key={provider.id} value={provider.id}>
+                      {provider.id} ({provider.status})
+                    </option>
+                  ))}
+                  {!modelCatalog && <option value="codex">codex</option>}
+                </select>
+              </label>
+
+              <label className="field-stack">
+                <span>Fallback Chain (comma-separated)</span>
+                <input value={fallbackChainInput} onChange={(e) => setFallbackChainInput(e.target.value)} />
+              </label>
+
+              <label className="field-stack">
+                <span>Model ID (optional)</span>
+                <input value={modelID} onChange={(e) => setModelID(e.target.value)} />
+              </label>
+
+              <label className="field-stack">
+                <span>Context Budget</span>
+                <input
+                  type="number"
+                  min={1000}
+                  max={200000}
+                  value={contextBudget}
+                  onChange={(e) => setContextBudget(Number(e.target.value) || 24000)}
+                />
+              </label>
+            </section>
+
+            <section className="panel">
+              <HeaderTitle icon="skills">Skills</HeaderTitle>
+              <label className="field-stack">
+                <span>Selection Mode</span>
+                <select
+                  value={skillSelectionMode}
+                  onChange={(e) => setSkillSelectionMode(e.target.value as SkillSelectionMode)}
+                >
+                  <option value="auto">auto</option>
+                  <option value="explicit">explicit</option>
+                  <option value="off">off</option>
+                </select>
+              </label>
+              <div className="module-grid">
+                {skillsCatalog.map((skill) => (
+                  <label key={skill.name} className="toggle-row module-row">
+                    <input
+                      type="checkbox"
+                      checked={selectedSkills.includes(skill.name)}
+                      disabled={!skill.enabled || skillSelectionMode === "off"}
+                      onChange={() => toggleSkill(skill.name)}
+                    />
+                    <span>{skill.name}</span>
+                  </label>
+                ))}
+              </div>
+            </section>
+
+            <section className="panel grow">
+              <HeaderTitle icon="blueprint">Blueprint</HeaderTitle>
+              <select
+                value={selectedBlueprintProfile}
+                onChange={(e) => {
+                  setSelectedBlueprintProfile(e.target.value);
+                  setSelectedBlueprintModules([]);
+                }}
+              >
+                <option value="">No profile</option>
+                {blueprints.map((profile) => (
+                  <option key={profile.id} value={profile.id}>
+                    {profile.name} ({profile.version})
+                  </option>
+                ))}
+              </select>
+
+              <label className="toggle-row">
+                <input
+                  type="checkbox"
+                  checked={enableBootstrap}
+                  onChange={(e) => setEnableBootstrap(e.target.checked)}
+                  disabled={!selectedBlueprintProfile}
+                />
+                <span>Bootstrap on run start</span>
+              </label>
+
+              <div className="module-grid">
+                {selectedProfile?.modules.map((module) => (
+                  <label key={module.id} className="toggle-row module-row">
+                    <input
+                      type="checkbox"
+                      checked={selectedBlueprintModules.includes(module.id)}
+                      onChange={() => toggleModule(module.id)}
+                    />
+                    <span>{module.name}</span>
+                  </label>
+                ))}
               </div>
             </section>
           </>
@@ -2879,6 +2920,8 @@ export default function App() {
           </div>
         </section>
 
+        {workspaceView === "settings" && (
+          <>
         <section className="panel orchestrator-panel">
           <div className="panel-head">
             <HeaderTitle icon="orchestrator">Orchestrator Control</HeaderTitle>
@@ -3120,6 +3163,9 @@ export default function App() {
             )}
           </div>
         </section>
+
+          </>
+        )}
 
         <section className="panel tabs-panel grow">
           <div className="tab-buttons">

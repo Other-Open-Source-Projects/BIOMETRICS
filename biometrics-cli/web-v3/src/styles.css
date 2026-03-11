@@ -339,6 +339,21 @@ button.danger {
   color: #85510e;
 }
 
+.run-list-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.run-list-controls input {
+  flex: 1;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid #d6deea;
+  background: rgba(255, 255, 255, 0.9);
+}
+
 .run-list {
   display: flex;
   flex-direction: column;

@@ -172,6 +172,8 @@ test("optimizer flow generates recommendation, applies it, and starts orchestrat
   const mock = await installMockControlPlane(page);
   await page.goto("/");
 
+  await page.getByTestId("sidebar-settings").click();
+
   const panel = page.getByTestId("optimizer-panel");
   await expect(panel).toBeVisible();
 
