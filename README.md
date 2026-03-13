@@ -1,6 +1,6 @@
-# BIOMETRICS V3 (Codex-First Overlay)
+# BIOMETRICS V3 (OpenCode Extension, Codex-First)
 
-BIOMETRICS V3 is a Codex-first extension layer for autonomous 24/7 orchestration, policy enforcement, and operator workflows. Codex core stays upstream; BIOMETRICS adds additive runtime modules and keeps a Codex-native visual style.
+BIOMETRICS V3 is an OpenCode CLI extension layer (Codex-first) for autonomous 24/7 orchestration, policy enforcement, and operator workflows. Codex core stays upstream; BIOMETRICS adds additive runtime modules and keeps a Codex-native visual style.
 
 ## Codex-First Positioning
 
@@ -53,9 +53,9 @@ make build
 BIOMETRICS overlay API default endpoint: `http://127.0.0.1:59013`  
 Override bind address explicitly with `BIOMETRICS_BIND_ADDR` when remote binding is required.
 
-## OpenCode (Repo-First Packaging)
+## OpenCode (Extension Packaging)
 
-BIOMETRICS ships OpenCode project assets in-repo (for example `.opencode/` templates and agent definitions). You should not need a separate “plugin installer” step for normal operation.
+BIOMETRICS ships OpenCode extension assets in-repo (for example `.opencode/commands/*` and `.opencode/plugins/biometrics.ts`). You should not need a separate “plugin installer” step for normal operation.
 
 Operational notes:
 - Non-interactive execution uses `opencode run` (OpenCode `>= 1.2.x`).

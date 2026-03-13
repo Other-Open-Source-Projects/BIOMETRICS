@@ -23,6 +23,7 @@ biometrics-cli/web-v3/test-results/
 
 # Local orchestration scratch (never track)
 .sisyphus/
+.omoc-worktrees/
 
 # Never vendor node_modules into templates
 templates/**/node_modules/
@@ -31,10 +32,14 @@ templates/**/node_modules/
 .opencode/node_modules/
 
 # Generated binaries / test artifacts
+bin/
 biometrics-cli/bin/
 biometrics-cli/*.test
 biometrics-cli/*.out
 biometrics-cli/http.test
+biometrics-cli/biometrics-cli
+biometrics-cli/biometrics-api
+biometrics-cli/biometrics-tui
 biometrics-cli/biometrics
 biometrics-cli/api-server
 biometrics-cli/orchestrator
@@ -44,6 +49,8 @@ biometrics-onboard
 # OpenCode Configuration (template only)
 .opencode/opencode.json
 .opencode/opencode.json.local
+.opencode/oh-my-opencode.json
+.opencode/oh-my-opencode.json.local
 
 # Keep only the template
 !.opencode/opencode.json.template

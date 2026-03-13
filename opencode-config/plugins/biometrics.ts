@@ -23,6 +23,9 @@ async function shCmd(
   cwd: string,
   cmd: string,
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+  if (cmd.includes("\n") || cmd.includes("\r")) {
+    return { exitCode: 2, stdout: "", stderr: "invalid_command" };
+  }
   const out = await $.cwd(cwd).nothrow()`bash -lc ${cmd}`;
   return { exitCode: out.exitCode, stdout: out.text(), stderr: out.stderr.toString() };
 }
@@ -46,7 +49,12 @@ function resolveRepoDir(repoDir?: string): string {
 }
 
 function shellEscapeDoubleQuotes(input: string): string {
-  return input.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+  return input
+    .replace(/\r?\n/g, " ")
+    .replaceAll("\\", "\\\\")
+    .replaceAll('"', '\\"')
+    .replaceAll("$", "\\$")
+    .replaceAll("`", "\\`");
 }
 
 async function fileExists(path: string): Promise<boolean> {
@@ -78,8 +86,12 @@ function normalizeBaseUrl(input: string): string {
 
 async function isPidRunning($: BunShell, pid: number): Promise<boolean> {
   if (!Number.isFinite(pid) || pid <= 1) return false;
-  const res = await shCmd($, os.homedir(), `kill -0 ${pid} >/dev/null 2>&1; echo $?`);
-  return res.stdout.trim() === "0";
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 const plugin: Plugin = async (input) => {
@@ -109,11 +121,13 @@ const plugin: Plugin = async (input) => {
               },
               default: [],
             },
+            confirm: { type: "boolean", default: false },
           },
           required: ["project_id"],
           additionalProperties: false,
         },
         async run(args): Promise<ToolResult> {
+          if (!args.confirm) return { ok: false, error: "confirm_required" };
           const projectID = String(args.project_id || "biometrics").trim() || "biometrics";
           const base = homePath(".sisyphus", "plans", projectID);
           const boulderPath = join(base, "boulder.json");
@@ -149,11 +163,13 @@ const plugin: Plugin = async (input) => {
             },
             target_dir: { type: "string", minLength: 1, default: "~/BIOMETRICS" },
             ref: { type: "string", minLength: 1, default: "main" },
+            confirm: { type: "boolean", default: false },
           },
           required: ["repo_url", "target_dir"],
           additionalProperties: false,
         },
         async run(args): Promise<ToolResult> {
+          if (!args.confirm) return { ok: false, error: "confirm_required" };
           const repoURL = String(args.repo_url || "").trim();
           const ref = String(args.ref || "main").trim() || "main";
           const targetDir = resolveRepoDir(String(args.target_dir || "~/BIOMETRICS"));
@@ -161,8 +177,8 @@ const plugin: Plugin = async (input) => {
           if (!targetDir) return { ok: false, error: "missing_target_dir" };
 
           await mkdir(dirname(targetDir), { recursive: true });
-          const cmd = `git clone --depth 1 --branch ${$.escape(ref)} ${$.escape(repoURL)} ${$.escape(targetDir)}`;
-          const res = await shCmd($, os.homedir(), cmd);
+          const out = await $.cwd(os.homedir()).nothrow()`git clone --depth 1 --branch ${ref} ${repoURL} ${targetDir}`;
+          const res = { exitCode: out.exitCode, stdout: out.text(), stderr: out.stderr.toString() };
           if (res.exitCode !== 0) {
             return { ok: false, error: res.stderr.trim() || res.stdout.trim() || "git clone failed" };
           }
@@ -185,11 +201,13 @@ const plugin: Plugin = async (input) => {
             repo_dir: { type: "string", minLength: 1, default: "~/BIOMETRICS" },
             ref: { type: "string", minLength: 1, default: "main" },
             mode: { type: "string", enum: ["clone_if_missing", "pull_if_present", "clone_or_pull"], default: "clone_or_pull" },
+            confirm: { type: "boolean", default: false },
           },
           required: ["repo_url", "repo_dir"],
           additionalProperties: false,
         },
         async run(args): Promise<ToolResult> {
+          if (!args.confirm) return { ok: false, error: "confirm_required" };
           const repoURL = String(args.repo_url || "").trim();
           const ref = String(args.ref || "main").trim() || "main";
           const repoDir = resolveRepoDir(String(args.repo_dir || "~/BIOMETRICS"));
@@ -200,11 +218,8 @@ const plugin: Plugin = async (input) => {
           const gitDir = join(repoDir, ".git");
           const exists = await fileExists(gitDir);
           if (!exists) {
-            const clone = await shCmd(
-              $,
-              os.homedir(),
-              `git clone --depth 1 --branch ${$.escape(ref)} ${$.escape(repoURL)} ${$.escape(repoDir)}`,
-            );
+            const out = await $.cwd(os.homedir()).nothrow()`git clone --depth 1 --branch ${ref} ${repoURL} ${repoDir}`;
+            const clone = { exitCode: out.exitCode, stdout: out.text(), stderr: out.stderr.toString() };
             if (clone.exitCode !== 0) {
               return { ok: false, error: clone.stderr.trim() || clone.stdout.trim() || "git clone failed" };
             }
@@ -216,7 +231,8 @@ const plugin: Plugin = async (input) => {
           }
 
           if (mode === "pull_if_present" || mode === "clone_or_pull") {
-            const pull = await shCmd($, repoDir, `git pull --ff-only origin ${$.escape(ref)}`);
+            const out = await $.cwd(repoDir).nothrow()`git pull --ff-only origin ${ref}`;
+            const pull = { exitCode: out.exitCode, stdout: out.text(), stderr: out.stderr.toString() };
             if (pull.exitCode !== 0) {
               return { ok: false, error: pull.stderr.trim() || pull.stdout.trim() || "git pull failed" };
             }
@@ -235,14 +251,17 @@ const plugin: Plugin = async (input) => {
           type: "object",
           properties: {
             repo_dir: { type: "string", minLength: 1, default: "~/BIOMETRICS" },
+            confirm: { type: "boolean", default: false },
           },
           required: ["repo_dir"],
           additionalProperties: false,
         },
         async run(args): Promise<ToolResult> {
+          if (!args.confirm) return { ok: false, error: "confirm_required" };
           const repoDir = resolveRepoDir(String(args.repo_dir || "~/BIOMETRICS"));
           if (!repoDir) return { ok: false, error: "missing_repo_dir" };
-          const res = await shCmd($, repoDir, "./scripts/init-env.sh");
+          const out = await $.cwd(repoDir).nothrow()`./scripts/init-env.sh`;
+          const res = { exitCode: out.exitCode, stdout: out.text(), stderr: out.stderr.toString() };
           if (res.exitCode !== 0) {
             return { ok: false, error: res.stderr.trim() || res.stdout.trim() || "init-env failed" };
           }
@@ -257,14 +276,17 @@ const plugin: Plugin = async (input) => {
           type: "object",
           properties: {
             repo_dir: { type: "string", minLength: 1, default: "~/BIOMETRICS" },
+            confirm: { type: "boolean", default: false },
           },
           required: ["repo_dir"],
           additionalProperties: false,
         },
         async run(args): Promise<ToolResult> {
+          if (!args.confirm) return { ok: false, error: "confirm_required" };
           const repoDir = resolveRepoDir(String(args.repo_dir || "~/BIOMETRICS"));
           if (!repoDir) return { ok: false, error: "missing_repo_dir" };
-          const res = await shCmd($, repoDir, "make build");
+          const out = await $.cwd(repoDir).nothrow()`make build`;
+          const res = { exitCode: out.exitCode, stdout: out.text(), stderr: out.stderr.toString() };
           if (res.exitCode !== 0) {
             return { ok: false, error: res.stderr.trim() || res.stdout.trim() || "build failed" };
           }
@@ -281,11 +303,13 @@ const plugin: Plugin = async (input) => {
           properties: {
             repo_dir: { type: "string", minLength: 1, default: "~/BIOMETRICS" },
             args: { type: "array", items: { type: "string" }, default: [] },
+            confirm: { type: "boolean", default: false },
           },
           required: ["repo_dir"],
           additionalProperties: false,
         },
         async run(args): Promise<ToolResult> {
+          if (!args.confirm) return { ok: false, error: "confirm_required" };
           const repoDir = resolveRepoDir(String(args.repo_dir || "~/BIOMETRICS"));
           const extra = Array.isArray(args.args) ? args.args.map((v: any) => String(v)) : [];
           if (!repoDir) return { ok: false, error: "missing_repo_dir" };
@@ -347,8 +371,12 @@ const plugin: Plugin = async (input) => {
 
           const envPairs: string[] = [];
           for (const [key, value] of Object.entries(extraEnv)) {
-            if (!key.trim()) continue;
-            envPairs.push(`${key.trim()}=${shellEscapeDoubleQuotes(String(value ?? ""))}`);
+            const k = String(key || "").trim();
+            if (!k) continue;
+            if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(k)) {
+              return { ok: false, error: "invalid_env_key", data: { key: k } };
+            }
+            envPairs.push(`${k}=${shellEscapeDoubleQuotes(String(value ?? ""))}`);
           }
           const envPrefix = envPairs.length ? `export ${envPairs.map((p) => `"${p}"`).join(" ")}; ` : "";
           const cmd = `${envPrefix}nohup ./bin/biometrics-cli > ${$.escape(logFile)} 2>&1 & echo $! > ${$.escape(pidFile)}`;
@@ -395,6 +423,128 @@ const plugin: Plugin = async (input) => {
       }),
 
       tool({
+        id: "biometrics.controlplane.status",
+        description: "Reports controlplane PID and log status (read-only).",
+        schema: {
+          type: "object",
+          properties: {
+            repo_dir: { type: "string", minLength: 1, default: "~/BIOMETRICS" },
+            base_url: { type: "string", minLength: 1, default: "http://127.0.0.1:59013" },
+          },
+          required: ["repo_dir"],
+          additionalProperties: false,
+        },
+        async run(args): Promise<ToolResult> {
+          const repoDir = resolveRepoDir(String(args.repo_dir || "~/BIOMETRICS"));
+          const baseUrl = normalizeBaseUrl(String(args.base_url || "http://127.0.0.1:59013"));
+          if (!repoDir) return { ok: false, error: "missing_repo_dir" };
+
+          const pidFile = join(repoDir, ".biometrics", "controlplane.pid");
+          const pidFileExists = await fileExists(pidFile);
+          let pid: number | undefined;
+          let pidRunning = false;
+          if (pidFileExists) {
+            const pidRaw = (await readText(pidFile)).trim();
+            const parsed = Number.parseInt(pidRaw, 10);
+            if (Number.isFinite(parsed) && parsed > 1) {
+              pid = parsed;
+              pidRunning = await isPidRunning($, pid);
+            }
+          }
+
+          const logDir = join(repoDir, "logs");
+          let latestLogFile: string | undefined;
+          try {
+            const { readdir, stat } = await import("node:fs/promises");
+            const entries = await readdir(logDir);
+            const candidates = entries.filter((name) => name.startsWith("controlplane-") && name.endsWith(".log"));
+            let bestPath: string | undefined;
+            let bestMtimeMs = 0;
+            for (const name of candidates) {
+              const p = join(logDir, name);
+              const s = await stat(p);
+              if (s.mtimeMs > bestMtimeMs) {
+                bestMtimeMs = s.mtimeMs;
+                bestPath = p;
+              }
+            }
+            latestLogFile = bestPath;
+          } catch {
+            latestLogFile = undefined;
+          }
+
+          return {
+            ok: true,
+            data: {
+              repo_dir: repoDir,
+              base_url: baseUrl,
+              pid_file: pidFile,
+              pid_file_exists: pidFileExists,
+              pid,
+              pid_running: pidRunning,
+              log_dir: logDir,
+              latest_log_file: latestLogFile,
+            },
+          };
+        },
+      }),
+
+      tool({
+        id: "biometrics.controlplane.logs",
+        description: "Returns the last N lines from the newest controlplane log file (read-only).",
+        schema: {
+          type: "object",
+          properties: {
+            repo_dir: { type: "string", minLength: 1, default: "~/BIOMETRICS" },
+            lines: { type: "integer", minimum: 1, maximum: 2000, default: 200 },
+          },
+          required: ["repo_dir"],
+          additionalProperties: false,
+        },
+        async run(args): Promise<ToolResult> {
+          const repoDir = resolveRepoDir(String(args.repo_dir || "~/BIOMETRICS"));
+          const maxLines = Number.isFinite(args.lines) ? Number(args.lines) : 200;
+          const lineCount = Math.min(2000, Math.max(1, Math.trunc(maxLines)));
+          if (!repoDir) return { ok: false, error: "missing_repo_dir" };
+
+          const logDir = join(repoDir, "logs");
+          let latestLogFile: string | undefined;
+          try {
+            const { readdir, stat } = await import("node:fs/promises");
+            const entries = await readdir(logDir);
+            const candidates = entries.filter((name) => name.startsWith("controlplane-") && name.endsWith(".log"));
+            let bestPath: string | undefined;
+            let bestMtimeMs = 0;
+            for (const name of candidates) {
+              const p = join(logDir, name);
+              const s = await stat(p);
+              if (s.mtimeMs > bestMtimeMs) {
+                bestMtimeMs = s.mtimeMs;
+                bestPath = p;
+              }
+            }
+            latestLogFile = bestPath;
+          } catch {
+            latestLogFile = undefined;
+          }
+
+          if (!latestLogFile) return { ok: false, error: "log_not_found", data: { repo_dir: repoDir, log_dir: logDir } };
+
+          const raw = await readText(latestLogFile);
+          const tail = raw.split("\n").slice(-lineCount).join("\n");
+
+          const redacted = tail
+            .replace(
+              /AIza[0-9A-Za-z_-]{30,}|nvapi-[0-9A-Za-z_-]{20,}|glpat-[0-9A-Za-z_-]{20,}|ghp_[0-9A-Za-z]{20,}|github_pat_[0-9A-Za-z_]{20,}|sk-(?:live|proj)-[0-9A-Za-z_-]{20,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g,
+              "<REDACTED>",
+            )
+            .replace(/Authorization:\s*Bearer\s+\S+/gi, "Authorization: Bearer <REDACTED>");
+
+          return { ok: true, data: { repo_dir: repoDir, log_file: latestLogFile, lines: lineCount, body: redacted } };
+        },
+      }),
+
+      tool({
         id: "biometrics.health.ready",
         description: "Fetches BIOMETRICS controlplane readiness (`/health/ready`).",
         schema: {
@@ -407,16 +557,16 @@ const plugin: Plugin = async (input) => {
         },
         async run(args): Promise<ToolResult> {
           const baseUrl = normalizeBaseUrl(String(args.base_url || "http://127.0.0.1:59013"));
-          const res = await shCmd($, os.homedir(), `curl -fsS ${$.escape(`${baseUrl}/health/ready`)}`);
+          const out = await $.cwd(os.homedir()).nothrow()`curl -fsS ${`${baseUrl}/health/ready`}`;
+          const res = { exitCode: out.exitCode, stdout: out.text(), stderr: out.stderr.toString() };
           if (res.exitCode !== 0) return { ok: false, error: res.stderr.trim() || res.stdout.trim() || "health check failed" };
           return { ok: true, data: { base_url: baseUrl, body: res.stdout.trim() } };
         },
       }),
 
       tool({
-        id: "biometrics.check_gates",
-        description:
-          "Runs BIOMETRICS release gate checks (Go + web + website + secret scan) in the specified repo directory.",
+        id: "biometrics.opencode.status",
+        description: "Reports OpenCode + BIOMETRICS extension wiring status (read-only).",
         schema: {
           type: "object",
           properties: {
@@ -428,7 +578,59 @@ const plugin: Plugin = async (input) => {
         async run(args): Promise<ToolResult> {
           const repoDir = resolveRepoDir(String(args.repo_dir || "~/BIOMETRICS"));
           if (!repoDir) return { ok: false, error: "missing_repo_dir" };
-          const res = await shCmd($, repoDir, "./scripts/release/check-gates.sh");
+
+          const loaderPath = join(repoDir, ".opencode", "plugins", "biometrics.ts");
+          const implPath = join(repoDir, "opencode-config", "plugins", "biometrics.ts");
+          const openCodeConfigPath = homePath(".config", "opencode", "opencode.json");
+          const omocConfigPath = homePath(".config", "opencode", "oh-my-opencode.json");
+
+          const [loaderExists, implExists, openCodeConfigExists, omocConfigExists] = await Promise.all([
+            fileExists(loaderPath),
+            fileExists(implPath),
+            fileExists(openCodeConfigPath),
+            fileExists(omocConfigPath),
+          ]);
+
+          const versionOut = await $.cwd(os.homedir()).nothrow()`opencode --version`;
+          const opencodeVersion = versionOut.exitCode === 0 ? versionOut.text().trim() : "";
+
+          return {
+            ok: true,
+            data: {
+              repo_dir: repoDir,
+              opencode_version: opencodeVersion,
+              plugin_loader_path: loaderPath,
+              plugin_loader_exists: loaderExists,
+              plugin_impl_path: implPath,
+              plugin_impl_exists: implExists,
+              opencode_config_path: openCodeConfigPath,
+              opencode_config_exists: openCodeConfigExists,
+              omoc_config_path: omocConfigPath,
+              omoc_config_exists: omocConfigExists,
+            },
+          };
+        },
+      }),
+
+      tool({
+        id: "biometrics.check_gates",
+        description:
+          "Runs BIOMETRICS release gate checks (Go + web + website + secret scan) in the specified repo directory.",
+        schema: {
+          type: "object",
+          properties: {
+            repo_dir: { type: "string", minLength: 1, default: "~/BIOMETRICS" },
+            confirm: { type: "boolean", default: false },
+          },
+          required: ["repo_dir"],
+          additionalProperties: false,
+        },
+        async run(args): Promise<ToolResult> {
+          if (!args.confirm) return { ok: false, error: "confirm_required" };
+          const repoDir = resolveRepoDir(String(args.repo_dir || "~/BIOMETRICS"));
+          if (!repoDir) return { ok: false, error: "missing_repo_dir" };
+          const out = await $.cwd(repoDir).nothrow()`./scripts/release/check-gates.sh`;
+          const res = { exitCode: out.exitCode, stdout: out.text(), stderr: out.stderr.toString() };
           if (res.exitCode !== 0) {
             return { ok: false, error: res.stderr.trim() || res.stdout.trim() || "gate checks failed" };
           }

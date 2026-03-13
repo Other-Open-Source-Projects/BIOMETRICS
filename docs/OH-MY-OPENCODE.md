@@ -1,10 +1,12 @@
 # OH-MY-OPENCODE Status in BIOMETRICS V3
 
-`oh-my-opencode` is not part of the supported BIOMETRICS V3 runtime surface.
+`oh-my-opencode` is optional and not required by the BIOMETRICS V3 runtime.
 
 ## Current Policy
 
-- BIOMETRICS V3 does not require `oh-my-opencode`.
+- BIOMETRICS V3 does not require `oh-my-opencode` and does not read OMOC config at runtime.
+- If you use OMOC anyway, keep its config as a global singleton at `~/.config/opencode/oh-my-opencode.json`.
+- Do not add project-local copies (for example `oh-my-opencode.json` or `.opencode/oh-my-opencode.json`).
 - Active integration guidance is documented in `docs/OPENCODE.md`.
 - V3 control and contracts are defined by:
   - `docs/api/openapi-v3-controlplane.yaml`

@@ -16,6 +16,10 @@ What it does:
 
 Notes:
   - Mutating plugin tools require `confirm:true` (e.g. biometrics.bootstrap_all).
+  - OpenCode runtime config is a global singleton:
+    - ~/.config/opencode/opencode.json (required)
+    - ~/.config/opencode/oh-my-opencode.json (optional; OMOC)
+  - Do not create project-local .opencode/opencode.json or .opencode/oh-my-opencode.json copies.
 EOF
 }
 
@@ -45,6 +49,14 @@ fi
 if [[ ! -f "${IMPL_PATH}" ]]; then
   echo "Missing plugin implementation: ${IMPL_PATH}" >&2
   exit 1
+fi
+
+if [[ -f "${ROOT_DIR}/.opencode/opencode.json" || -f "${ROOT_DIR}/.opencode/oh-my-opencode.json" ]]; then
+  echo "WARNING: Detected project-local OpenCode config under .opencode/*.json. Use ~/.config/opencode/* instead." >&2
+fi
+
+if [[ ! -f "${HOME}/.config/opencode/opencode.json" ]]; then
+  echo "NOTE: Missing ~/.config/opencode/opencode.json (see docs/OPENCODE.md)" >&2
 fi
 
 echo "OK: opencode=$(opencode --version | head -n 1)"
@@ -82,4 +94,3 @@ if [[ "${START}" == "true" ]]; then
 fi
 
 echo "Tip: run with --start to launch opencode here."
-

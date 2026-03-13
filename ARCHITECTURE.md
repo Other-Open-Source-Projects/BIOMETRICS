@@ -21,6 +21,14 @@ BIOMETRICS ist das **zentrale Rules & Templates Repository** für KI-Agenten-Sys
 - Execution directory resolution: `BIOMETRICS_OPENCODE_DIR` → `BIOMETRICS_WORKSPACE` → process working directory.
 - Details: `docs/OPENCODE.md`.
 
+**OpenCode Extension Surfaces (repo-first):**
+- `.opencode/commands/*` (slash commands)
+- `.opencode/plugins/biometrics.ts` (loader)
+- `opencode-config/plugins/biometrics.ts` (implementation)
+- `scripts/opencode-biometrics.sh` (launcher)
+
+Canonical OpenCode runtime config remains global: `~/.config/opencode/opencode.json` (+ optional OMOC config).
+
 ---
 
 ## 🏗️ NEUE STRUKTUR
@@ -68,9 +76,8 @@ BIOMETRICS/
 │       └── enterprise/                # OpenClaw enterprise
 │
 ├── ⚙️ configs/                        # TOOL-KONFIGURATIONEN
-│   ├── opencode/
-│   │   ├── opencode.json              # Master config mit allen Providern
-│   │   ├── provider-configs/          # Google, Streamlake, XiaoMi, ZEN
+│   ├── opencode/                      # Supporting presets/docs; kanonische Runtime-Dateien leben in ~/.config/opencode/
+│   │   ├── provider-configs/          # Supporting presets/docs, keine zweite Live-opencode.json
 │   │   └── model-presets/             # Coding, Research, Writing presets
 │   │
 │   ├── openclaw/
@@ -227,7 +234,7 @@ BIOMETRICS/
 - [ ] templates/openclaw/enterprise/
 
 ### Phase 4: Configs
-- [ ] configs/opencode/opencode.json
+- [ ] canonical ~/.config/opencode/opencode.json documented
 - [ ] configs/opencode/provider-configs/
 - [ ] configs/opencode/model-presets/
 - [ ] configs/openclaw/openclaw.json

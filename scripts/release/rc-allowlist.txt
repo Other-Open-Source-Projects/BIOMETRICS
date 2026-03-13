@@ -6,7 +6,6 @@ Makefile
 .env
 .gitignore
 .opencode/*
-oh-my-opencode.json
 .github/workflows/*
 archive/legacy-v2/*
 biometrics-cli/*

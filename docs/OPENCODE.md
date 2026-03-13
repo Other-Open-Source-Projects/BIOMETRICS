@@ -20,10 +20,16 @@ BIOMETRICS V3 supports local `.env` and OpenCode auth/config storage without com
 2. Keep `.env.example` tracked and up to date.
 3. Keep OpenCode config as local user config, not committed secrets.
 
-Project template references:
+Canonical config file (required; system-wide singleton):
 
-- `.opencode/opencode.json.template`
-- `.opencode/custom_agents.json`
+- `~/.config/opencode/opencode.json`
+
+Optional OMOC config (only if you use the `oh-my-opencode` plugin):
+
+- `~/.config/opencode/oh-my-opencode.json`
+
+BIOMETRICS does not require `oh-my-opencode` and does not read OMOC config at runtime.
+Do not create project-local `opencode.json`, `.opencode/opencode.json`, or `.opencode/oh-my-opencode.json` duplicates.
 
 ## Minimal Setup
 
@@ -109,9 +115,29 @@ BIOMETRICS ships a repo-first OpenCode plugin loader at:
 - `.opencode/plugins/biometrics.ts` (loader)
 - `opencode-config/plugins/biometrics.ts` (plugin implementation)
 
+Repo-local plugin deps:
+
+- `.opencode/node_modules/` is local-only and ignored; do not commit it.
+- BIOMETRICS does not require a tracked `.opencode/package.json` for normal operation.
+
+Binary Policy:
+
+- All Go binaries (`biometrics-cli`, `biometrics-api`, `biometrics-tui`) are build artifacts.
+- They are excluded via `.gitignore` and must be built via `make build` or CI.
+- Do not commit compiled binaries to the repository.
+
+Repo slash commands (inside OpenCode):
+
+- `.opencode/commands/biometrics-plan.md` → `/biometrics-plan`
+- `.opencode/commands/biometrics-work.md` → `/biometrics-work`
+
+Confirmation gates:
+
+- Mutating tools require `confirm:true` (for example `biometrics.bootstrap_all` and `biometrics.controlplane.start|stop`).
+
 Tool surface (examples):
 - `biometrics.bootstrap_all` (end-to-end: repo/env/onboard/build/start/gates; requires `confirm:true`)
-- `biometrics.controlplane.start|stop`, `biometrics.health.ready`, `biometrics.check_gates`
+- `biometrics.controlplane.start|stop` (requires `confirm:true`), `biometrics.check_gates` (requires `confirm:true`), `biometrics.health.ready` (read-only)
 
 Quick launcher:
 

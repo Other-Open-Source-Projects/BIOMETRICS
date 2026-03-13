@@ -5,6 +5,10 @@ The active OpenCode integration guide moved to:
 - `docs/OPENCODE.md`
 - Clone-to-run onboarding entrypoint: `./biometrics-onboard`
 
+BIOMETRICS is packaged as an OpenCode extension. Quick launcher:
+
+- `./scripts/opencode-biometrics.sh --start`
+
 For V3 migration and operations, use:
 
 - `docs/guides/MIGRATION_V3.md`

@@ -67,6 +67,13 @@ It defines the active V3 behavior and replaces legacy V2 conventions.
 4. CI secret scanner runs on tracked files and must fail on high-confidence key patterns.
 5. File-system APIs must block traversal and out-of-workspace access.
 
+## 7A. OpenCode / OMOC Singleton Config Rule
+
+1. OpenCode runtime config is a system-wide singleton at `~/.config/opencode/opencode.json`.
+2. If `oh-my-opencode` is used, its config must live at `~/.config/opencode/oh-my-opencode.json` (optional).
+3. Project-local duplicates are prohibited: `opencode.json`, `.opencode/opencode.json`, `.opencode/oh-my-opencode.json`, `~/.opencode/opencode.json`, and any extra `oh-my-opencode.json`.
+4. Any template or repo guidance must reference the canonical global paths only and must not ship a second live copy.
+
 ## 8. Documentation Rules
 
 1. Active docs must describe V3 behavior only.

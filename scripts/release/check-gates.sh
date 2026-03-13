@@ -241,8 +241,11 @@ log "Running public website build and content checks"
   pnpm run test:content
 )
 
+log "Enforcing OpenCode singleton config policy"
+"${ROOT_DIR}/scripts/check-opencode-singleton.sh"
+
 log "Checking for active legacy V2 references"
-pattern='cmd/api-server|cmd/orchestrator|cmd/tui|cmd/agent-loop|biometrics-cli/web-ui|/api/v0|/api/v2|oh-my-opencode\.json'
+pattern='cmd/api-server|cmd/orchestrator|cmd/tui|cmd/agent-loop|biometrics-cli/web-ui|/api/v0|/api/v2'
 found=0
 while IFS= read -r -d '' file; do
   [[ "${file}" == archive/* ]] && continue
