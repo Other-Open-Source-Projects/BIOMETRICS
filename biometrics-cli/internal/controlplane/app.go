@@ -237,7 +237,16 @@ func serveUI(w http.ResponseWriter, r *http.Request, distRoot string) {
 	}
 	relPath := strings.TrimPrefix(cleanPath, string(filepath.Separator))
 
-	candidate := filepath.Join(distRoot, relPath)
+	rootAbs, err := filepath.Abs(distRoot)
+	if err != nil {
+		serveIndex(w, r, distRoot)
+		return
+	}
+	candidate := filepath.Join(rootAbs, relPath)
+	if rel, err := filepath.Rel(rootAbs, candidate); err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		serveIndex(w, r, distRoot)
+		return
+	}
 	if fileExists(candidate) {
 		http.ServeFile(w, r, candidate)
 		return

@@ -123,11 +123,35 @@ func (r *Runner) Create(ctx context.Context, req skillkit.CreateRequest) (skillk
 	if !filepath.IsAbs(basePath) {
 		basePath = filepath.Join(r.workspace, basePath)
 	}
-	if err := os.MkdirAll(basePath, 0o755); err != nil {
+	baseAbs, err := filepath.Abs(basePath)
+	if err != nil {
+		return skillkit.OperationResult{Status: "failed", Message: err.Error()}, err
+	}
+	workspaceAbs, err := filepath.Abs(r.workspace)
+	if err != nil {
+		return skillkit.OperationResult{Status: "failed", Message: err.Error()}, err
+	}
+	codexAbs, err := filepath.Abs(r.codexHome)
+	if err != nil {
+		return skillkit.OperationResult{Status: "failed", Message: err.Error()}, err
+	}
+	allowed := false
+	for _, root := range []string{workspaceAbs, codexAbs} {
+		rel, err := filepath.Rel(root, baseAbs)
+		if err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+			allowed = true
+			break
+		}
+	}
+	if !allowed {
+		err := fmt.Errorf("path traversal blocked")
+		return skillkit.OperationResult{Status: "failed", Message: err.Error()}, err
+	}
+	if err := os.MkdirAll(baseAbs, 0o755); err != nil {
 		return skillkit.OperationResult{Status: "failed", Message: err.Error()}, err
 	}
 
-	args := []string{script, name, "--path", basePath}
+	args := []string{script, name, "--path", baseAbs}
 	if len(req.Resources) > 0 {
 		resources := make([]string, 0, len(req.Resources))
 		for _, entry := range req.Resources {
@@ -166,7 +190,7 @@ func (r *Runner) Create(ctx context.Context, req skillkit.CreateRequest) (skillk
 	}
 
 	if req.Validate {
-		skillPath := filepath.Join(basePath, name)
+		skillPath := filepath.Join(baseAbs, name)
 		validateResult, validateErr := r.Validate(ctx, skillPath)
 		result.Output = append(result.Output, validateResult.Output...)
 		if validateErr != nil {

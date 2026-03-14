@@ -59,10 +59,9 @@ func (f fakeLLMGateway) MetricsSnapshot() map[string]int64 {
 func setupTestServer(t *testing.T) (*Server, *scheduler.RunManager, context.CancelFunc, string) {
 	t.Helper()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
-
 	tmp := t.TempDir()
+
+	ctx, cancel := context.WithCancel(context.Background())
 	mustWriteFile(t, filepath.Join(tmp, "biometrics", "go.mod"), "module biometrics-test\n")
 	writeBlueprintFixtures(t, tmp)
 	writeSkillFixtures(t, tmp)
@@ -113,6 +112,8 @@ func setupTestServer(t *testing.T) (*Server, *scheduler.RunManager, context.Canc
 	}
 	manager.SetSkillManager(skillManager)
 	server := NewServer(manager, eventBus)
+
+	t.Cleanup(cancel)
 	return server, manager, cancel, tmp
 }
 
@@ -1920,6 +1921,26 @@ func TestOrchestratorResumeFromStepEndpoint(t *testing.T) {
 	if resumeW.Code != http.StatusOK {
 		t.Fatalf("expected 200 resume, got %d body=%s", resumeW.Code, resumeW.Body.String())
 	}
+
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		statusReq := httptest.NewRequest(http.MethodGet, "/api/v1/orchestrator/runs/"+runID, nil)
+		statusW := httptest.NewRecorder()
+		server.Handler().ServeHTTP(statusW, statusReq)
+		if statusW.Code != http.StatusOK {
+			t.Fatalf("expected 200 status, got %d body=%s", statusW.Code, statusW.Body.String())
+		}
+		var current map[string]interface{}
+		if err := json.NewDecoder(statusW.Body).Decode(&current); err != nil {
+			t.Fatalf("decode run status: %v", err)
+		}
+		status, _ := current["status"].(string)
+		if status == "completed" || status == "failed" {
+			return
+		}
+		time.Sleep(40 * time.Millisecond)
+	}
+	t.Fatalf("resumed run did not complete")
 }
 
 func TestEvalEndpointsRunStatusAndLeaderboard(t *testing.T) {

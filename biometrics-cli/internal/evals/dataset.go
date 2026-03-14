@@ -83,7 +83,7 @@ func loadDataset(datasetID string, seed int64, limit int) (Dataset, error) {
 		limit = 5000
 	}
 
-	tasks := make([]Task, 0, limit)
+	tasks := make([]Task, 0, 512)
 	for i := 0; i < limit; i++ {
 		template := apexTaskTemplates[i%len(apexTaskTemplates)]
 		jitter := deterministicUnit(seed, fmt.Sprintf("%s:%d", id, i))

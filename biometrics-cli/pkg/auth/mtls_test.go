@@ -382,8 +382,8 @@ func TestCertificateErrors(t *testing.T) {
 	}
 
 	err := manager.loadOrGenerateCA()
-	if err == nil {
-		t.Error("Should fail with nonexistent path")
+	if err != nil {
+		t.Fatalf("expected CA generation to create missing dirs, got error: %v", err)
 	}
 }
 

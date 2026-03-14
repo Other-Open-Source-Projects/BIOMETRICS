@@ -102,8 +102,10 @@ func (m *Manager) Start(_ context.Context, req StartRequest) (Job, error) {
 		cancel: cancel,
 	}
 
+	var snapshot Job
 	m.mu.Lock()
 	m.jobs[id] = handle
+	snapshot = handle.job
 	m.mu.Unlock()
 
 	m.publish(handle.job.ID, "background.agent.created", map[string]string{
@@ -114,7 +116,7 @@ func (m *Manager) Start(_ context.Context, req StartRequest) (Job, error) {
 	})
 
 	go m.execute(runCtx, handle.job.ID)
-	return handle.job, nil
+	return snapshot, nil
 }
 
 func (m *Manager) List() []Job {
@@ -145,11 +147,13 @@ func (m *Manager) Get(jobID string) (Job, bool) {
 
 	m.mu.RLock()
 	handle, ok := m.jobs[jobID]
-	m.mu.RUnlock()
 	if !ok {
+		m.mu.RUnlock()
 		return Job{}, false
 	}
-	return handle.job, true
+	job := handle.job
+	m.mu.RUnlock()
+	return job, true
 }
 
 func (m *Manager) Cancel(jobID string) (Job, error) {

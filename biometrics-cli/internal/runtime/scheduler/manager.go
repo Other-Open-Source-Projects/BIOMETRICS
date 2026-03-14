@@ -1902,18 +1902,62 @@ func (m *RunManager) ListProjects() ([]map[string]string, error) {
 }
 
 func (m *RunManager) ReadFile(path string) ([]byte, error) {
-	validated, err := m.policy.ValidatePath(m.workspace, path)
+	rootAbs, err := filepath.Abs(m.workspace)
 	if err != nil {
 		return nil, err
 	}
+	cleanTarget := filepath.Clean(strings.TrimSpace(path))
+	if cleanTarget == "." || cleanTarget == "" {
+		return nil, fmt.Errorf("path is required")
+	}
+	if filepath.IsAbs(cleanTarget) {
+		return nil, fmt.Errorf("absolute paths blocked")
+	}
+	validated := filepath.Join(rootAbs, cleanTarget)
+	if rel, err := filepath.Rel(rootAbs, validated); err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return nil, fmt.Errorf("path traversal blocked")
+	}
+
+	rootResolved, err := filepath.EvalSymlinks(rootAbs)
+	if err == nil {
+		resolved, err := filepath.EvalSymlinks(validated)
+		if err == nil {
+			if rel, err := filepath.Rel(rootResolved, resolved); err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+				return nil, fmt.Errorf("path traversal blocked")
+			}
+		}
+	}
+
 	return os.ReadFile(validated)
 }
 
 func (m *RunManager) ListDir(path string) ([]map[string]interface{}, error) {
-	validated, err := m.policy.ValidatePath(m.workspace, path)
+	rootAbs, err := filepath.Abs(m.workspace)
 	if err != nil {
 		return nil, err
 	}
+	cleanTarget := filepath.Clean(strings.TrimSpace(path))
+	if cleanTarget == "" {
+		cleanTarget = "."
+	}
+	if filepath.IsAbs(cleanTarget) {
+		return nil, fmt.Errorf("absolute paths blocked")
+	}
+	validated := filepath.Join(rootAbs, cleanTarget)
+	if rel, err := filepath.Rel(rootAbs, validated); err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return nil, fmt.Errorf("path traversal blocked")
+	}
+
+	rootResolved, err := filepath.EvalSymlinks(rootAbs)
+	if err == nil {
+		resolved, err := filepath.EvalSymlinks(validated)
+		if err == nil {
+			if rel, err := filepath.Rel(rootResolved, resolved); err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+				return nil, fmt.Errorf("path traversal blocked")
+			}
+		}
+	}
+
 	entries, err := os.ReadDir(validated)
 	if err != nil {
 		return nil, err

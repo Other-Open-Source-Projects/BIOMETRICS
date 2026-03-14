@@ -627,7 +627,7 @@ func (s *Store) ListRuns(limit int) ([]contracts.Run, error) {
 	}
 	defer rows.Close()
 
-	out := make([]contracts.Run, 0, limit)
+	out := make([]contracts.Run, 0, 64)
 	for rows.Next() {
 		run, err := scanRun(rows)
 		if err != nil {
@@ -1123,7 +1123,7 @@ func (s *Store) ListOptimizerRecommendations(opts ListOptimizerRecommendationsOp
 	}
 	defer rows.Close()
 
-	out := make([]OptimizerRecommendationRecord, 0, limit)
+	out := make([]OptimizerRecommendationRecord, 0, 64)
 	for rows.Next() {
 		rec, err := scanOptimizerRecommendation(rows)
 		if err != nil {

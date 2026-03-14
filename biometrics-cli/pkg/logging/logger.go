@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 )
@@ -495,13 +496,37 @@ func (l *Logger) writeText(entry *LogEntry, output io.Writer) {
 
 // Sync flushes any buffered log entries.
 func (l *Logger) Sync() error {
+	var firstErr error
 	if syncer, ok := l.out.(interface{ Sync() error }); ok {
-		return syncer.Sync()
+		if err := syncer.Sync(); err != nil && !isIgnorableSyncError(err) {
+			firstErr = err
+		}
 	}
 	if syncer, ok := l.errOut.(interface{ Sync() error }); ok {
-		return syncer.Sync()
+		if err := syncer.Sync(); err != nil && !isIgnorableSyncError(err) {
+			if firstErr == nil {
+				firstErr = err
+			}
+		}
 	}
-	return nil
+	return firstErr
+}
+
+func isIgnorableSyncError(err error) bool {
+	if err == nil {
+		return true
+	}
+	msg := strings.ToLower(err.Error())
+	if strings.Contains(msg, "bad file descriptor") {
+		return true
+	}
+	if strings.Contains(msg, "inappropriate ioctl") {
+		return true
+	}
+	if strings.Contains(msg, "invalid argument") {
+		return true
+	}
+	return false
 }
 
 // SetOutput changes the output destination.

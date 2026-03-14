@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"biometrics-cli/internal/contracts"
@@ -44,6 +45,8 @@ type Service struct {
 	runInputs  map[string]RunRequest
 	scorecards map[string]Scorecard
 	arenaPaths map[string]map[string]string
+	runGenSeq  atomic.Uint64
+	runGen     map[string]uint64
 
 	sessionMu      sync.Mutex
 	sessionRuntime map[string]*sessionRuntimeState
@@ -65,6 +68,7 @@ func NewService(backend runBackend, bus eventPublisher) *Service {
 		runInputs:      make(map[string]RunRequest),
 		scorecards:     make(map[string]Scorecard),
 		arenaPaths:     make(map[string]map[string]string),
+		runGen:         make(map[string]uint64),
 		sessionRuntime: make(map[string]*sessionRuntimeState),
 	}
 	svc.initSessionDependencies(backend)
@@ -195,10 +199,12 @@ func (s *Service) StartRun(ctx context.Context, req RunRequest) (Run, error) {
 		UpdatedAt:                 now,
 	}
 
+	gen := s.runGenSeq.Add(1)
 	s.mu.Lock()
 	s.runs[run.ID] = run
 	s.runInputs[run.ID] = normalized
 	s.arenaPaths[run.ID] = make(map[string]string)
+	s.runGen[run.ID] = gen
 	s.mu.Unlock()
 	s.memory.Put(MemoryRecord{
 		Scope:      MemoryScopeRun,
@@ -211,8 +217,9 @@ func (s *Service) StartRun(ctx context.Context, req RunRequest) (Run, error) {
 		CreatedAt:  now,
 	})
 
-	go s.executeRun(run.ID, 0)
-	return run, nil
+	snapshot := cloneRunForRead(run)
+	go s.executeRun(run.ID, 0, gen)
+	return snapshot, nil
 }
 
 func (s *Service) ResumeFromStep(_ context.Context, runID, stepID string) (Run, error) {
@@ -261,6 +268,9 @@ func (s *Service) ResumeFromStep(_ context.Context, runID, stepID string) (Run, 
 	run.UpdatedAt = now
 	run.FinishedAt = nil
 	s.runs[runID] = run
+	gen := s.runGenSeq.Add(1)
+	s.runGen[runID] = gen
+	snapshot := cloneRunForRead(run)
 	s.mu.Unlock()
 
 	s.publish(runID, "orchestrator.resume.applied", map[string]string{
@@ -269,8 +279,8 @@ func (s *Service) ResumeFromStep(_ context.Context, runID, stepID string) (Run, 
 		"index":   fmt.Sprintf("%d", resumeIdx),
 	})
 
-	go s.executeRun(runID, resumeIdx)
-	return run, nil
+	go s.executeRun(runID, resumeIdx, gen)
+	return snapshot, nil
 }
 
 func (s *Service) GetRun(runID string) (Run, error) {
@@ -280,7 +290,7 @@ func (s *Service) GetRun(runID string) (Run, error) {
 	if !ok {
 		return Run{}, fmt.Errorf("orchestrator run not found")
 	}
-	return run, nil
+	return cloneRunForRead(run), nil
 }
 
 func (s *Service) Scorecard(runID string) (Scorecard, error) {
@@ -303,7 +313,7 @@ func (s *Service) Scorecard(runID string) (Scorecard, error) {
 		return Scorecard{}, fmt.Errorf("scorecard unavailable for non-terminal run")
 	}
 
-	score, err := s.computeScorecard(run)
+	score, err := s.computeScorecard(cloneRunForRead(run))
 	if err != nil {
 		return Scorecard{}, err
 	}
@@ -356,7 +366,10 @@ func (s *Service) resolvePlanForRun(req RunRequest) (Plan, error) {
 	return s.CreatePlan(planReq)
 }
 
-func (s *Service) executeRun(runID string, startIdx int) {
+func (s *Service) executeRun(runID string, startIdx int, gen uint64) {
+	if !s.isRunGeneration(runID, gen) {
+		return
+	}
 	s.mu.RLock()
 	run, ok := s.runs[runID]
 	req := s.runInputs[runID]
@@ -374,6 +387,9 @@ func (s *Service) executeRun(runID string, startIdx int) {
 	}
 
 	for idx := startIdx; idx < len(run.Steps); idx++ {
+		if !s.isRunGeneration(runID, gen) {
+			return
+		}
 		step, err := s.transitionStep(runID, idx, StepRunning, "")
 		if err != nil {
 			s.finishRun(runID, RunFailed, err.Error())
@@ -386,6 +402,9 @@ func (s *Service) executeRun(runID string, startIdx int) {
 			"index":     fmt.Sprintf("%d", idx),
 		})
 
+		if !s.isRunGeneration(runID, gen) {
+			return
+		}
 		if err := s.executeStep(runID, idx, req); err != nil {
 			_, _ = s.transitionStep(runID, idx, StepFailed, err.Error())
 			s.publish(runID, "orchestrator.step.failed", map[string]string{
@@ -395,6 +414,9 @@ func (s *Service) executeRun(runID string, startIdx int) {
 				"error":     err.Error(),
 			})
 			s.finishRun(runID, RunFailed, err.Error())
+			return
+		}
+		if !s.isRunGeneration(runID, gen) {
 			return
 		}
 
@@ -410,9 +432,16 @@ func (s *Service) executeRun(runID string, startIdx int) {
 	s.finishRun(runID, RunCompleted, "")
 }
 
+func (s *Service) isRunGeneration(runID string, gen uint64) bool {
+	s.mu.RLock()
+	current := s.runGen[runID]
+	s.mu.RUnlock()
+	return current == gen
+}
+
 func (s *Service) executeStep(runID string, idx int, req RunRequest) error {
 	s.mu.RLock()
-	run := s.runs[runID]
+	run := cloneRunForRead(s.runs[runID])
 	s.mu.RUnlock()
 	if idx < 0 || idx >= len(run.Steps) {
 		return fmt.Errorf("invalid step index")
@@ -470,7 +499,7 @@ func (s *Service) executeStep(runID string, idx int, req RunRequest) error {
 		return s.runUnderlyingSchedulerRun(runID, req)
 	case "evaluate":
 		s.mu.RLock()
-		current := s.runs[runID]
+		current := cloneRunForRead(s.runs[runID])
 		s.mu.RUnlock()
 		score, err := s.computeScorecard(current)
 		if err != nil {
@@ -852,6 +881,38 @@ func cloneSteps(in []PlanStep) []PlanStep {
 	return out
 }
 
+func cloneTimePtr(in *time.Time) *time.Time {
+	if in == nil {
+		return nil
+	}
+	v := *in
+	return &v
+}
+
+func cloneAgentProfiles(in []AgentProfile) []AgentProfile {
+	out := make([]AgentProfile, len(in))
+	for i := range in {
+		out[i] = in[i]
+		out[i].AllowedTools = append([]string{}, in[i].AllowedTools...)
+	}
+	return out
+}
+
+func cloneRunForRead(in Run) Run {
+	out := in
+	out.AgentProfiles = cloneAgentProfiles(in.AgentProfiles)
+	out.Steps = make([]PlanStep, len(in.Steps))
+	for i := range in.Steps {
+		step := in.Steps[i]
+		step.DependsOn = append([]string{}, step.DependsOn...)
+		step.StartedAt = cloneTimePtr(step.StartedAt)
+		step.FinishedAt = cloneTimePtr(step.FinishedAt)
+		out.Steps[i] = step
+	}
+	out.FinishedAt = cloneTimePtr(in.FinishedAt)
+	return out
+}
+
 func strategyReason(mode StrategyMode) string {
 	switch mode {
 	case StrategyAdaptive:
@@ -1016,6 +1077,18 @@ func (s *Service) prepareArenaBranch(runID, branch string) (string, error) {
 	}
 
 	branchPath := filepath.Join(s.arenaRoot, sanitizePathSegment(runID), sanitizePathSegment(branch))
+	rootAbs, err := filepath.Abs(s.arenaRoot)
+	if err != nil {
+		return "", fmt.Errorf("prepare arena workspace: %w", err)
+	}
+	branchAbs, err := filepath.Abs(branchPath)
+	if err != nil {
+		return "", fmt.Errorf("prepare arena workspace: %w", err)
+	}
+	if rel, err := filepath.Rel(rootAbs, branchAbs); err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("path traversal blocked")
+	}
+	branchPath = branchAbs
 	if err := os.MkdirAll(branchPath, 0o755); err != nil {
 		return "", fmt.Errorf("prepare arena workspace: %w", err)
 	}

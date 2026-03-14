@@ -43,6 +43,7 @@ jobs:
               - '**/*.min.js'
               - '**/dist/**'
               - '**/build/**'
+              - 'archive/**'
 
       - name: Setup Go
         uses: actions/setup-go@v5

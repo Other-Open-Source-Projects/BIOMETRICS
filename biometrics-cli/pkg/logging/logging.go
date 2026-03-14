@@ -514,19 +514,19 @@ func (l *AdvancedLogger) Sync() error {
 	var errs []error
 
 	if l.logger != nil {
-		if err := l.logger.Sync(); err != nil {
+		if err := l.logger.Sync(); err != nil && !isIgnorableSyncError(err) {
 			errs = append(errs, err)
 		}
 	}
 
 	if l.writer != nil {
-		if err := l.writer.Sync(); err != nil {
+		if err := l.writer.Sync(); err != nil && !isIgnorableSyncError(err) {
 			errs = append(errs, err)
 		}
 	}
 
 	if l.multi != nil {
-		if err := l.multi.Sync(); err != nil {
+		if err := l.multi.Sync(); err != nil && !isIgnorableSyncError(err) {
 			errs = append(errs, err)
 		}
 	}

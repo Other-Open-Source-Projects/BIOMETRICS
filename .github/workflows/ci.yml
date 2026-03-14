@@ -136,7 +136,14 @@ jobs:
         working-directory: biometrics-cli
         run: go mod download
 
-      - name: Run Tests with Race Detection & Coverage
+      - name: Run Tests with Race Detection & Coverage (Windows)
+        if: runner.os == 'Windows'
+        working-directory: biometrics-cli
+        shell: bash
+        run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Run Tests with Race Detection & Coverage (Unix)
+        if: runner.os != 'Windows'
         working-directory: biometrics-cli
         run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
 
