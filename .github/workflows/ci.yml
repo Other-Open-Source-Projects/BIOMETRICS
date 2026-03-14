@@ -214,8 +214,32 @@ jobs:
 
       - name: Run Integration Tests
         run: |
+          set -euo pipefail
           echo "Running integration tests..."
-          ./bin/biometrics-cli-linux --help
+          PORT=59013
+          export PORT
+          export BIOMETRICS_BIND_ADDR=127.0.0.1
+          export BIOMETRICS_WORKSPACE="$GITHUB_WORKSPACE"
+
+          ./bin/biometrics-cli-linux >controlplane.log 2>&1 &
+          PID=$!
+          cleanup() {
+            kill "$PID" >/dev/null 2>&1 || true
+            wait "$PID" >/dev/null 2>&1 || true
+            echo "--- controlplane.log (last 200 lines) ---"
+            tail -n 200 controlplane.log || true
+          }
+          trap cleanup EXIT
+
+          for i in $(seq 1 80); do
+            if curl -fsS "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1; then
+              break
+            fi
+            sleep 0.5
+          done
+
+          curl -fsS "http://127.0.0.1:${PORT}/health" | tee /dev/stderr >/dev/null
+          curl -fsS "http://127.0.0.1:${PORT}/api/v1/projects" >/dev/null
           echo "✓ Integration tests passed!"
 
   # ============================================
