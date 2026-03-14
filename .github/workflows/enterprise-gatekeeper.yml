@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./backend
+        working-directory: ./biometrics-cli
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -25,7 +25,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version-file: 'biometrics-cli/go.mod'
           cache: true
 
       - name: Download Dependencies
@@ -52,7 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./frontend
+        working-directory: ./website
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -60,22 +60,20 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: 9
+          version: 10.10.0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
+          cache-dependency-path: website/pnpm-lock.yaml
 
       - name: Install Dependencies
-        run: ppnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
-      - name: 🚨 Strict TypeScript Check
-        run: pnpm tsc --noEmit
-
-      - name: 🚨 ESLint & Prettier
-        run: pnpm lint
+      - name: 🧪 Content Tests
+        run: pnpm test:content
 
       - name: 🏗️ Production Build Test
         # Ein Next.js Build fällt sofort durch, wenn es tote Links, fehlende Typen oder kaputte UI-Komponenten gibt
