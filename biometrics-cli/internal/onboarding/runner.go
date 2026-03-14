@@ -540,7 +540,7 @@ func (r *Runner) stepSkills(_ context.Context) *StepError {
 	required := []string{"skill-creator", "skill-installer"}
 	codexHome := strings.TrimSpace(os.Getenv("CODEX_HOME"))
 	if codexHome == "" {
-		homeDir, err := os.UserHomeDir()
+		homeDir, err := resolveHomeDir()
 		if err != nil {
 			return fail("unable to detect user home directory", "Set HOME and rerun onboarding.")
 		}
@@ -777,7 +777,7 @@ func (r *Runner) stepExposeCommand(_ context.Context) *StepError {
 		)
 	}
 
-	homeDir, err := os.UserHomeDir()
+	homeDir, err := resolveHomeDir()
 	if err != nil {
 		return fail("unable to detect user home directory", "Set HOME and rerun onboarding.")
 	}
@@ -1163,7 +1163,44 @@ func ensureSymlink(linkPath, target string) error {
 		return err
 	}
 
-	return os.Symlink(target, linkPath)
+	if err := os.Symlink(target, linkPath); err == nil {
+		return nil
+	}
+	if err := os.Link(target, linkPath); err == nil {
+		return nil
+	}
+	return copyFile(target, linkPath)
+}
+
+func resolveHomeDir() (string, error) {
+	if home := strings.TrimSpace(os.Getenv("HOME")); home != "" {
+		return home, nil
+	}
+	return os.UserHomeDir()
+}
+
+func copyFile(source, destination string) error {
+	in, err := os.Open(source)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	info, err := in.Stat()
+	if err != nil {
+		return err
+	}
+
+	out, err := os.OpenFile(destination, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, info.Mode().Perm())
+	if err != nil {
+		return err
+	}
+	_, copyErr := io.Copy(out, in)
+	closeErr := out.Close()
+	if copyErr != nil {
+		return copyErr
+	}
+	return closeErr
 }
 
 func copyDirRecursive(source, destination string) error {
