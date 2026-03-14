@@ -949,16 +949,16 @@ func (s *Store) ListEvents(runID string, limit int) ([]contracts.Event, error) {
 	}
 
 	query := `SELECT id, run_id, type, source, payload, created_at FROM (
-		SELECT id, run_id, type, source, payload, created_at
+		SELECT rowid AS seq, id, run_id, type, source, payload, created_at
 		FROM events`
 	args := make([]interface{}, 0, 2)
 	if runID != "" {
 		query += ` WHERE run_id = ?`
 		args = append(args, runID)
 	}
-	query += ` ORDER BY created_at DESC, id DESC LIMIT ?
+	query += ` ORDER BY created_at DESC, rowid DESC LIMIT ?
 	) ordered_events
-	ORDER BY created_at ASC, id ASC`
+	ORDER BY created_at ASC, seq ASC`
 	args = append(args, limit)
 
 	rows, err := s.db.Query(query, args...)
