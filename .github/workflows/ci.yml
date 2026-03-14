@@ -163,21 +163,21 @@ jobs:
 
       - name: Build Binary (Linux)
         working-directory: biometrics-cli
-        run: go build -o ../bin/biometrics-cli-linux ./...
+        run: go build -o ../bin/biometrics-cli-linux ./cmd/controlplane
 
       - name: Build Binary (macOS)
         working-directory: biometrics-cli
         env:
           GOOS: darwin
           GOARCH: amd64
-        run: go build -o ../bin/biometrics-cli-darwin ./...
+        run: go build -o ../bin/biometrics-cli-darwin ./cmd/controlplane
 
       - name: Build Binary (Windows)
         working-directory: biometrics-cli
         env:
           GOOS: windows
           GOARCH: amd64
-        run: go build -o ../bin/biometrics-cli-windows.exe ./...
+        run: go build -o ../bin/biometrics-cli-windows.exe ./cmd/controlplane
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
