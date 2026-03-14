@@ -1,0 +1,26 @@
+---
+title: Install on Windows (WSL)
+description: WSL-based installation and validation flow for BIOMETRICS.
+---
+
+import { VerifyBlock } from '../../components/VerifyBlock'
+
+## Install in WSL
+
+```bash
+git clone <your-repo-url> BIOMETRICS
+cd BIOMETRICS
+./biometrics-onboard
+```
+
+<VerifyBlock title="Verify Linux user context" expected="current user is non-root">
+Run `whoami` and ensure your repo workspace is writable.
+</VerifyBlock>
+
+## Start and verify
+
+```bash
+cd biometrics-cli
+go run ./cmd/controlplane
+curl -fsS http://127.0.0.1:59013/health/ready
+```

@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GO_VERSION: '1.24'
+  GO_VERSION: '1.25.8'
   NODE_VERSION: '20'
 
 jobs:
@@ -32,16 +32,6 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
           cache-dependency-path: biometrics-cli/go.sum
-
-      - name: Cache Go Modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
 
       - name: Run go fmt
         working-directory: biometrics-cli
@@ -105,6 +95,16 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Install MinGW (Windows)
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          path-type: inherit
+          install: >-
+            mingw-w64-x86_64-gcc
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
@@ -112,21 +112,18 @@ jobs:
           cache: true
           cache-dependency-path: biometrics-cli/go.sum
 
-      - name: Cache Go Modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-
       - name: Download Dependencies
         working-directory: biometrics-cli
         run: go mod download
 
-      - name: Run Tests with Race Detection & Coverage
+      - name: Run Tests with Race Detection & Coverage (Windows)
+        if: runner.os == 'Windows'
+        working-directory: biometrics-cli
+        shell: bash
+        run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Run Tests with Race Detection & Coverage (Unix)
+        if: runner.os != 'Windows'
         working-directory: biometrics-cli
         run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
 
@@ -166,21 +163,21 @@ jobs:
 
       - name: Build Binary (Linux)
         working-directory: biometrics-cli
-        run: go build -o ../bin/biometrics-cli-linux ./...
+        run: go build -o ../bin/biometrics-cli-linux ./cmd/controlplane
 
       - name: Build Binary (macOS)
         working-directory: biometrics-cli
         env:
           GOOS: darwin
           GOARCH: amd64
-        run: go build -o ../bin/biometrics-cli-darwin ./...
+        run: go build -o ../bin/biometrics-cli-darwin ./cmd/controlplane
 
       - name: Build Binary (Windows)
         working-directory: biometrics-cli
         env:
           GOOS: windows
           GOARCH: amd64
-        run: go build -o ../bin/biometrics-cli-windows.exe ./...
+        run: go build -o ../bin/biometrics-cli-windows.exe ./cmd/controlplane
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
@@ -217,8 +214,32 @@ jobs:
 
       - name: Run Integration Tests
         run: |
+          set -euo pipefail
           echo "Running integration tests..."
-          ./bin/biometrics-cli-linux --help
+          PORT=59013
+          export PORT
+          export BIOMETRICS_BIND_ADDR=127.0.0.1
+          export BIOMETRICS_WORKSPACE="$GITHUB_WORKSPACE"
+
+          ./bin/biometrics-cli-linux >controlplane.log 2>&1 &
+          PID=$!
+          cleanup() {
+            kill "$PID" >/dev/null 2>&1 || true
+            wait "$PID" >/dev/null 2>&1 || true
+            echo "--- controlplane.log (last 200 lines) ---"
+            tail -n 200 controlplane.log || true
+          }
+          trap cleanup EXIT
+
+          for i in $(seq 1 80); do
+            if curl -fsS "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1; then
+              break
+            fi
+            sleep 0.5
+          done
+
+          curl -fsS "http://127.0.0.1:${PORT}/health" | tee /dev/stderr >/dev/null
+          curl -fsS "http://127.0.0.1:${PORT}/api/v1/projects" >/dev/null
           echo "✓ Integration tests passed!"
 
   # ============================================

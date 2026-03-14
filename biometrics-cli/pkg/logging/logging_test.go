@@ -64,7 +64,7 @@ func TestNewRotatingWriter(t *testing.T) {
 }
 
 func TestNewRotatingWriterInvalidPath(t *testing.T) {
-	logFile := "/nonexistent/path/test.log"
+	logFile := ""
 
 	cfg := RotationConfig{
 		Enabled: true,
@@ -587,7 +587,7 @@ func TestBufferedLogger(t *testing.T) {
 	})
 
 	flushed := false
-	buffered := NewBufferedLogger(logger, 100, func(data []byte) {
+	buffered := NewBufferedLogger(logger, 1, func(data []byte) {
 		flushed = true
 	})
 

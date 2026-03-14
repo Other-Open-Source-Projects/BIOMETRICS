@@ -1,28 +1,23 @@
-# BIOMETRICS OPENCODE INTEGRATION V12.0
+# BIOMETRICS OpenCode Notes (V3)
 
-This project follows the **UNLIMITED HYBRID MATRIX** for 24/7 autonomous coding.
+The active OpenCode integration guide moved to:
 
-## 🚀 Optimized Slash Commands
+- `docs/OPENCODE.md`
+- Clone-to-run onboarding entrypoint: `./biometrics-onboard`
 
-| Command | Status | Description |
-|---------|--------|-------------|
-| \`/biometrics-plan\` | ✅ Active | High-IQ Swarm Planning (Gemini 3.1 Pro + Claude Opus). |
-| \`/biometrics-work\` | ✅ Active | Autonomous **Biometrics Loop** (Go Supervisor) execution. |
+BIOMETRICS is packaged as an OpenCode extension. Quick launcher:
 
-## 🤖 The Immortal Agent Matrix (V12.0)
+- `./scripts/opencode-biometrics.sh --start`
 
-We utilize additive quota pools to ensure zero downtime:
+For V3 migration and operations, use:
 
-1. **Intelligence (3.1 Pro)**: 250 requests/day - Primary Worker.
-2. **Reinforcement (3.0 Pro)**: 250 requests/day - First Fallback.
-3. **Endurance (3 Flash)**: 10,000 requests/day - Second Fallback.
-4. **Safety Net (Qwen/GLM)**: Unlimited - Final Emergency.
+- `docs/guides/MIGRATION_V3.md`
+- `docs/guides/OPERATOR_RUNBOOK_V3.md`
+- `docs/api/openapi-v3-controlplane.yaml`
 
-## ⚙️ Configuration Source of Truth
+Legacy plugin-heavy notes are no longer authoritative for BIOMETRICS V3 runtime.
 
-- **Global Config**: \`~/.config/opencode/opencode.json\`
-- **API Access**: Managed via standalone \`GOOGLE_API_KEY\` (google-api) and Antigravity OAuth (google).
-- **Quality Gate**: MANDATE 0.37 (Self-Reflection) enforced by Go Supervisor.
-
----
-*Created by BIOMETRICS Team - February 2026*
+Note: onboarding step telemetry (`onboard.step.*`) is local-only at `.biometrics/onboard/events.jsonl`.
+Runtime run modes remain `autonomous` (default) and `supervised` (checkpointed via `run.supervision.checkpoint`).
+Model routing remains additive and non-breaking (`model_preference`, `fallback_chain`, `model_id`, `context_budget` on `POST /api/v1/runs`).
+Codex auth broker endpoints are available at `/api/v1/auth/codex/*`; provider inventory at `/api/v1/models`.

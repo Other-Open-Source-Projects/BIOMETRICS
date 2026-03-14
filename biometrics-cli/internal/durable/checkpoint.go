@@ -102,7 +102,7 @@ func (j *Journal) CreateCheckpoint(agentID, sessionID, taskID string, input map[
 	steps := j.checkpoints[agentID]
 	stepNumber := len(steps) + 1
 
-	if stepNumber > j.maxSteps {
+	if j.maxSteps > 0 && stepNumber > j.maxSteps {
 		return nil, fmt.Errorf("max steps exceeded for agent %s", agentID)
 	}
 

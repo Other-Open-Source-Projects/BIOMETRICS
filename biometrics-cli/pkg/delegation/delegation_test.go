@@ -138,6 +138,13 @@ func TestDelegationRouter(t *testing.T) {
 
 func TestWorkerPool(t *testing.T) {
 	router := NewDelegationRouter()
+	router.RegisterAgent(&AgentCapability{
+		Name:         "agent-1",
+		AgentID:      "agent-001",
+		Capabilities: []string{string(TaskTypeCode)},
+		Load:         0,
+		Healthy:      true,
+	})
 	engine := NewWorkerPool(5, router)
 	defer engine.Shutdown()
 

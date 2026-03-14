@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biometrics.dev/contracts/run.schema.json",
+  "title": "Run",
+  "type": "object",
+  "required": [
+    "id",
+    "project_id",
+    "goal",
+    "mode",
+    "status",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "project_id": { "type": "string", "minLength": 1 },
+    "goal": { "type": "string", "minLength": 1 },
+    "mode": { "type": "string", "enum": ["autonomous", "supervised"] },
+    "skills": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "skill_selection_mode": {
+      "type": "string",
+      "enum": ["auto", "explicit", "off"]
+    },
+    "scheduler_mode": {
+      "type": "string",
+      "enum": ["dag_parallel_v1", "serial"]
+    },
+    "max_parallelism": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 32
+    },
+    "fallback_triggered": { "type": "boolean" },
+    "model_preference": { "type": "string", "minLength": 1 },
+    "fallback_chain": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "model_id": { "type": "string" },
+    "context_budget": {
+      "type": "integer",
+      "minimum": 1000,
+      "maximum": 200000
+    },
+    "blueprint_profile": { "type": "string" },
+    "blueprint_modules": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "bootstrap": { "type": "boolean" },
+    "optimizer_recommendation_id": { "type": "string" },
+    "optimizer_confidence": {
+      "type": "string",
+      "enum": ["low", "medium", "high"]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["queued", "running", "paused", "cancelled", "completed", "failed"]
+    },
+    "error": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

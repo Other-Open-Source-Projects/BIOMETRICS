@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://biometrics.dev/</loc></url>
+  <url><loc>https://biometrics.dev/quickstart</loc></url>
+  <url><loc>https://biometrics.dev/install</loc></url>
+  <url><loc>https://biometrics.dev/install/macos</loc></url>
+  <url><loc>https://biometrics.dev/install/linux</loc></url>
+  <url><loc>https://biometrics.dev/install/windows-wsl</loc></url>
+  <url><loc>https://biometrics.dev/docs</loc></url>
+  <url><loc>https://biometrics.dev/docs/tutorials/first-successful-run</loc></url>
+  <url><loc>https://biometrics.dev/docs/how-to/run-control-actions</loc></url>
+  <url><loc>https://biometrics.dev/docs/reference/api</loc></url>
+  <url><loc>https://biometrics.dev/docs/reference/cli</loc></url>
+  <url><loc>https://biometrics.dev/docs/explanations/control-plane-architecture</loc></url>
+  <url><loc>https://biometrics.dev/docs/security/defaults</loc></url>
+  <url><loc>https://biometrics.dev/docs/runbooks/production-operations</loc></url>
+  <url><loc>https://biometrics.dev/docs/changelog</loc></url>
+  <url><loc>https://biometrics.dev/de</loc></url>
+  <url><loc>https://biometrics.dev/de/quickstart</loc></url>
+  <url><loc>https://biometrics.dev/de/install</loc></url>
+</urlset>

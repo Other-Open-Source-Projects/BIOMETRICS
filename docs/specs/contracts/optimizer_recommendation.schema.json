@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biometrics.dev/contracts/optimizer_recommendation.schema.json",
+  "title": "OptimizerRecommendation",
+  "type": "object",
+  "required": [
+    "id",
+    "project_id",
+    "goal",
+    "strategy_mode",
+    "scheduler_mode",
+    "max_parallelism",
+    "model_preference",
+    "context_budget",
+    "objective",
+    "confidence",
+    "predicted_gates",
+    "rationale",
+    "status",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "project_id": { "type": "string", "minLength": 1 },
+    "goal": { "type": "string", "minLength": 1 },
+    "strategy_mode": {
+      "type": "string",
+      "enum": ["deterministic", "adaptive", "arena"]
+    },
+    "scheduler_mode": {
+      "type": "string",
+      "enum": ["dag_parallel_v1", "serial"]
+    },
+    "max_parallelism": { "type": "integer", "minimum": 1, "maximum": 32 },
+    "model_preference": { "type": "string", "minLength": 1 },
+    "fallback_chain": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "model_id": { "type": "string" },
+    "context_budget": { "type": "integer", "minimum": 1000, "maximum": 200000 },
+    "objective": {
+      "type": "object",
+      "required": ["quality", "speed", "cost"],
+      "properties": {
+        "quality": { "type": "number", "minimum": 0, "maximum": 1 },
+        "speed": { "type": "number", "minimum": 0, "maximum": 1 },
+        "cost": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "confidence": { "type": "string", "enum": ["low", "medium", "high"] },
+    "predicted_gates": {
+      "type": "object",
+      "required": [
+        "quality_pass",
+        "time_pass",
+        "cost_pass",
+        "regression_pass",
+        "all_pass",
+        "gate_pass_count",
+        "predicted_quality_score",
+        "predicted_time_improvement_percent",
+        "predicted_cost_improvement_percent",
+        "predicted_cost_per_success",
+        "predicted_regression_detected",
+        "predicted_composite_score"
+      ],
+      "properties": {
+        "quality_pass": { "type": "boolean" },
+        "time_pass": { "type": "boolean" },
+        "cost_pass": { "type": "boolean" },
+        "regression_pass": { "type": "boolean" },
+        "all_pass": { "type": "boolean" },
+        "gate_pass_count": { "type": "integer", "minimum": 0, "maximum": 4 },
+        "predicted_quality_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "predicted_time_improvement_percent": { "type": "number" },
+        "predicted_cost_improvement_percent": { "type": "number" },
+        "predicted_cost_per_success": { "type": "number", "minimum": 0 },
+        "predicted_regression_detected": { "type": "boolean" },
+        "predicted_composite_score": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "rationale": { "type": "string", "minLength": 1 },
+    "source_scorecard_run_id": { "type": "string" },
+    "status": { "type": "string", "enum": ["generated", "applied", "rejected"] },
+    "applied_run_id": { "type": "string" },
+    "rejected_reason": { "type": "string" },
+    "validation": {
+      "type": "object",
+      "required": [
+        "id",
+        "recommendation_id",
+        "status",
+        "quality_pass",
+        "time_pass",
+        "cost_pass",
+        "regression_pass",
+        "all_pass",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "recommendation_id": { "type": "string", "minLength": 1 },
+        "eval_run_id": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "running", "completed", "failed"] },
+        "quality_pass": { "type": "boolean" },
+        "time_pass": { "type": "boolean" },
+        "cost_pass": { "type": "boolean" },
+        "regression_pass": { "type": "boolean" },
+        "all_pass": { "type": "boolean" },
+        "summary": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

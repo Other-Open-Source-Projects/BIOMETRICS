@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biometrics.dev/contracts/task.schema.json",
+  "title": "Task",
+  "type": "object",
+  "required": [
+    "id",
+    "run_id",
+    "name",
+    "agent",
+    "status",
+    "depends_on",
+    "attempt",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "agent": { "type": "string", "minLength": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "running", "completed", "failed", "skipped", "cancelled"]
+    },
+    "lifecycle_state": {
+      "type": "string",
+      "enum": ["blocked", "ready", "running", "retrying", "completed", "failed", "skipped", "cancelled"]
+    },
+    "depends_on": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "priority": { "type": "integer" },
+    "max_attempts": { "type": "integer", "minimum": 1 },
+    "attempt": { "type": "integer", "minimum": 0 },
+    "last_error": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "finished_at": { "type": "string", "format": "date-time" },
+    "completed_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

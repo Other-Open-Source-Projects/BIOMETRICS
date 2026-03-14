@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biometrics.dev/contracts/graph.schema.json",
+  "title": "TaskGraph",
+  "type": "object",
+  "required": ["run_id", "nodes", "edges", "created_at"],
+  "properties": {
+    "run_id": { "type": "string", "minLength": 1 },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "agent", "priority", "status", "lifecycle_state"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "name": { "type": "string", "minLength": 1 },
+          "agent": { "type": "string", "minLength": 1 },
+          "depends_on": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "priority": { "type": "integer" },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "running", "completed", "failed", "skipped", "cancelled"]
+          },
+          "lifecycle_state": {
+            "type": "string",
+            "enum": ["blocked", "ready", "running", "retrying", "completed", "failed", "skipped", "cancelled"]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to"],
+        "properties": {
+          "from": { "type": "string", "minLength": 1 },
+          "to": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "critical_path": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

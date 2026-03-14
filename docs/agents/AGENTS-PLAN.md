@@ -989,7 +989,7 @@ Kategorie: Configuration
 Priorität: P0
 Read First: `OPENCODE.md`
 Edit: `OPENCODE.md`
-Akzeptanzkriterien: Alle Modelle in opencode.json konfiguriert
+Akzeptanzkriterien: Alle Modelle in ~/.config/opencode/opencode.json konfiguriert
 
 ### DELQHI-Task 06
 Task-ID: DELQHI-001-T06

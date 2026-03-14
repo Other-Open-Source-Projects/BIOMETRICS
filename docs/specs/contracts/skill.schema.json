@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biometrics.dev/contracts/skill.schema.json",
+  "title": "Skill",
+  "type": "object",
+  "required": ["name", "description", "path_to_skill_md", "scope", "enabled"],
+  "properties": {
+    "name": { "type": "string", "pattern": "^[a-z0-9-]+$", "minLength": 1, "maxLength": 64 },
+    "description": { "type": "string", "minLength": 1, "maxLength": 1024 },
+    "short_description": { "type": "string", "maxLength": 1024 },
+    "path_to_skill_md": { "type": "string", "minLength": 1 },
+    "scope": { "type": "string", "enum": ["repo", "user", "system", "admin"] },
+    "enabled": { "type": "boolean" },
+    "interface": {
+      "type": "object",
+      "properties": {
+        "display_name": { "type": "string" },
+        "short_description": { "type": "string" },
+        "icon_small": { "type": "string" },
+        "icon_large": { "type": "string" },
+        "brand_color": { "type": "string" },
+        "default_prompt": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "dependencies": {
+      "type": "object",
+      "properties": {
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["type", "value"],
+            "properties": {
+              "type": { "type": "string", "minLength": 1 },
+              "value": { "type": "string", "minLength": 1 },
+              "description": { "type": "string" },
+              "transport": { "type": "string" },
+              "command": { "type": "string" },
+              "url": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "policy": {
+      "type": "object",
+      "properties": {
+        "allow_implicit_invocation": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

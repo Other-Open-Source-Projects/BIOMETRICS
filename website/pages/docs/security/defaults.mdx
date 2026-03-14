@@ -1,0 +1,17 @@
+---
+title: Security Defaults
+description: Default hardening policies for secrets, filesystem scope, and network permissions.
+---
+
+## Hardening-by-default baseline
+
+- Secret handling: no secrets committed, strict tracked-file scanning.
+- Filesystem scope: workspace-focused where possible.
+- Network scope: restricted by default for risky operations.
+- Manual recommendation apply for optimizer (no global auto-apply).
+
+## Operator checklist
+
+1. Confirm `.env` comes from template and no live tokens are committed.
+2. Validate readiness and provider status from `/health/ready`.
+3. Ensure policy profile selection is documented per run.

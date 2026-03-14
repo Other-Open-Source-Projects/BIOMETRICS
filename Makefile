@@ -1,24 +1,31 @@
-.PHONY: help setup build test lint docker docker-up docker-down clean verify install config env
+.PHONY: help setup build test lint docker docker-up docker-down clean verify install config env onboard onboard-doctor website-build website-test website-dev opencode
 
 SHELL := /bin/bash
 PROJECT_ROOT := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 BIN_DIR := $(PROJECT_ROOT)/bin
 CLI_DIR := $(PROJECT_ROOT)/biometrics-cli
+WEBSITE_DIR := $(PROJECT_ROOT)/website
+CONTROLPLANE_PATH := ./cmd/controlplane
 
 help:
-	@echo "BIOMETRICS - Makefile Commands"
+	@echo "BIOMETRICS - Codex Extension Commands"
 	@echo "=============================="
 	@echo ""
 	@echo "Setup & Installation:"
 	@echo "  make install       - Install all dependencies"
 	@echo "  make setup         - Run full setup script"
 	@echo "  make env           - Create .env from template"
+	@echo "  make onboard       - Run clone-to-run onboarding"
+	@echo "  make onboard-doctor - Run onboarding diagnostics only"
 	@echo ""
 	@echo "Development:"
 	@echo "  make build         - Build biometrics-cli"
 	@echo "  make test          - Run tests"
 	@echo "  make lint          - Run linters"
 	@echo "  make verify        - Verify installation"
+	@echo "  make website-build - Build public website"
+	@echo "  make website-test  - Run public website quality checks"
+	@echo "  make website-dev   - Start public website dev server"
 	@echo ""
 	@echo "Docker:"
 	@echo "  make docker        - Build Docker images"
@@ -46,29 +53,47 @@ setup: env
 	@$(PROJECT_ROOT)/scripts/setup.sh
 
 env:
-	@echo "Creating .env file..."
-	@if [ ! -f $(PROJECT_ROOT)/.env ]; then \
-		if [ -f $(PROJECT_ROOT)/.env.example ]; then \
-			cp $(PROJECT_ROOT)/.env.example $(PROJECT_ROOT)/.env; \
-			echo "Created .env from template. Please edit and add your API keys!"; \
-		else \
-			echo "ERROR: .env.example not found!"; \
-			exit 1; \
-		fi \
-	else \
-		echo ".env already exists"; \
-	fi
+	@echo "Bootstrapping .env from canonical template..."
+	@chmod +x $(PROJECT_ROOT)/scripts/init-env.sh
+	@$(PROJECT_ROOT)/scripts/init-env.sh
+
+onboard:
+	@echo "Running BIOMETRICS onboarding..."
+	@$(PROJECT_ROOT)/biometrics-onboard
+
+onboard-doctor:
+	@echo "Running BIOMETRICS onboarding doctor..."
+	@$(PROJECT_ROOT)/biometrics-onboard --doctor
 
 build:
-	@echo "Building biometrics-cli..."
-	@cd $(CLI_DIR)
-	@go build -o $(BIN_DIR)/biometrics-cli
-	@echo "Build complete: $(BIN_DIR)/biometrics-cli"
+	@echo "Building BIOMETRICS V3 overlay services..."
+	@mkdir -p $(BIN_DIR)
+	@cd $(CLI_DIR) && go build -o $(BIN_DIR)/biometrics-cli $(CONTROLPLANE_PATH)
+	@cd $(CLI_DIR) && go build -o $(BIN_DIR)/biometrics-onboard ./cmd/onboard
+	@cd $(CLI_DIR) && go build -o $(BIN_DIR)/biometrics-skills ./cmd/skills
+	@echo "Build complete: $(BIN_DIR)/biometrics-cli, $(BIN_DIR)/biometrics-onboard, $(BIN_DIR)/biometrics-skills"
 
 test:
-	@echo "Running tests..."
-	@cd $(CLI_DIR) && go test -v ./...
+	@echo "Running V3 tests..."
+	@cd $(CLI_DIR) && go test -v ./cmd/controlplane ./cmd/biometrics ./cmd/onboard ./cmd/skills ./internal/api/http ./internal/blueprints ./internal/controlplane ./internal/policy ./internal/runtime/... ./internal/store/sqlite ./internal/planning ./internal/onboarding ./internal/skillkit ./internal/skillops
 	@echo "Tests complete!"
+
+website-build:
+	@echo "Building BIOMETRICS public website..."
+	@cd $(WEBSITE_DIR) && corepack enable && pnpm install --frozen-lockfile && pnpm run build
+	@echo "Website build complete!"
+
+website-test:
+	@echo "Running BIOMETRICS public website quality checks..."
+	@cd $(WEBSITE_DIR) && corepack enable && pnpm install --frozen-lockfile && pnpm run test:content
+	@echo "Website quality checks complete!"
+
+website-dev:
+	@echo "Starting BIOMETRICS public website dev server..."
+	@cd $(WEBSITE_DIR) && corepack enable && pnpm install --frozen-lockfile && pnpm run dev
+
+opencode:
+	@$(PROJECT_ROOT)/scripts/opencode-biometrics.sh --start
 
 lint:
 	@echo "Running linters..."
@@ -86,6 +111,16 @@ verify:
 		echo "  biometrics-cli: OK"; \
 	else \
 		echo "  biometrics-cli: MISSING (run make build)"; \
+	fi
+	@if [ -f $(BIN_DIR)/biometrics-onboard ]; then \
+		echo "  biometrics-onboard: OK"; \
+	else \
+		echo "  biometrics-onboard: MISSING (run make build or make onboard)"; \
+	fi
+	@if [ -f $(BIN_DIR)/biometrics-skills ]; then \
+		echo "  biometrics-skills: OK"; \
+	else \
+		echo "  biometrics-skills: MISSING (run make build)"; \
 	fi
 	@if [ -f $(PROJECT_ROOT)/.env ]; then \
 		echo "  .env: OK"; \

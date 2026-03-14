@@ -17,14 +17,10 @@ func NewPriorityQueue() *PriorityQueue {
 }
 
 func (pq *PriorityQueue) Len() int {
-	pq.mu.RLock()
-	defer pq.mu.RUnlock()
 	return len(pq.tasks)
 }
 
 func (pq *PriorityQueue) Less(i, j int) bool {
-	pq.mu.RLock()
-	defer pq.mu.RUnlock()
 	if pq.tasks[i].Priority == pq.tasks[j].Priority {
 		return pq.tasks[i].CreatedAt.Before(pq.tasks[j].CreatedAt)
 	}
@@ -32,21 +28,15 @@ func (pq *PriorityQueue) Less(i, j int) bool {
 }
 
 func (pq *PriorityQueue) Swap(i, j int) {
-	pq.mu.Lock()
-	defer pq.mu.Unlock()
 	pq.tasks[i], pq.tasks[j] = pq.tasks[j], pq.tasks[i]
 }
 
 func (pq *PriorityQueue) Push(x interface{}) {
-	pq.mu.Lock()
-	defer pq.mu.Unlock()
 	task := x.(*Task)
 	pq.tasks = append(pq.tasks, task)
 }
 
 func (pq *PriorityQueue) Pop() interface{} {
-	pq.mu.Lock()
-	defer pq.mu.Unlock()
 	old := pq.tasks
 	n := len(old)
 	task := old[n-1]

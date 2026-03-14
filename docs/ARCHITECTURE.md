@@ -7,7 +7,7 @@
 ## DIRECTORY: Directory Structure (TARGET)
 
 ```
-/Users/jeremy/dev/Delqhi-Platform/
+$HOME/dev/Delqhi-Platform/
 ├── Docker/
 │   ├── agents/
 │   │   ├── agent-01-n8n-orchestrator/

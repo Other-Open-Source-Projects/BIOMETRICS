@@ -1,0 +1,45 @@
+{
+  "version": "1.0.0",
+  "source": {
+    "repo": "https://github.com/Delqhi/CODE-BLUEPRINTS.git",
+    "commit": "2d562d0f6e8c519574d7ca3b57a153ad0b446596"
+  },
+  "profiles": [
+    {
+      "id": "universal-2026",
+      "name": "Universal Blueprint 2026",
+      "version": "2026.02.1",
+      "description": "Curated machine-readable profile derived from CODE-BLUEPRINTS concepts.",
+      "core": {
+        "blueprint_template": "templates/blueprints/core/BLUEPRINT.md",
+        "agents_template": "templates/blueprints/core/AGENTS.md"
+      },
+      "modules": [
+        {
+          "id": "engine",
+          "name": "Engine Backend",
+          "description": "High-throughput backend architecture and runtime guardrails.",
+          "template": "templates/blueprints/modules/engine.md"
+        },
+        {
+          "id": "webapp",
+          "name": "Web App SaaS",
+          "description": "Product web app module with API, auth and tenancy sections.",
+          "template": "templates/blueprints/modules/webapp.md"
+        },
+        {
+          "id": "website",
+          "name": "Website",
+          "description": "Marketing or docs website module with SEO and deployment sections.",
+          "template": "templates/blueprints/modules/website.md"
+        },
+        {
+          "id": "ecommerce",
+          "name": "Ecommerce",
+          "description": "Commerce domain module with catalog, checkout and fulfillment sections.",
+          "template": "templates/blueprints/modules/ecommerce.md"
+        }
+      ]
+    }
+  ]
+}

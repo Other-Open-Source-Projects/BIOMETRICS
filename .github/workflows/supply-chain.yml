@@ -1,0 +1,85 @@
+name: Supply Chain Security
+
+on:
+  push:
+    branches: [main, develop]
+  schedule:
+    - cron: "20 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  attestations: write
+  contents: read
+  id-token: write
+  security-events: write
+
+jobs:
+  scorecard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Run OpenSSF Scorecard
+        # v2.4.0
+        uses: ossf/scorecard-action@ff5dd8929f96a8a4dc67d13f32b8c75057829621
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: false
+
+      - name: Upload Scorecard SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+
+  sbom-and-provenance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+          cache-dependency-path: |
+            website/pnpm-lock.yaml
+            biometrics-cli/web-v3/pnpm-lock.yaml
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install website dependencies
+        working-directory: website
+        run: pnpm install --frozen-lockfile
+
+      - name: Install web-v3 dependencies
+        working-directory: biometrics-cli/web-v3
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate CycloneDX SBOMs
+        run: |
+          mkdir -p sbom
+          (cd website && pnpm dlx @cyclonedx/cyclonedx-npm --output-file ../sbom/website.cdx.json)
+          (cd biometrics-cli/web-v3 && pnpm dlx @cyclonedx/cyclonedx-npm --output-file ../../sbom/web-v3.cdx.json)
+
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx
+          path: sbom/*.cdx.json
+          if-no-files-found: error
+
+      - name: Attest SBOM provenance
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: |
+            sbom/website.cdx.json
+            sbom/web-v3.cdx.json

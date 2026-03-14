@@ -1,0 +1,25 @@
+---
+title: Runbook - Production Operations
+description: Production runbook for operating BIOMETRICS safely in real environments.
+---
+
+## Standard operating sequence
+
+1. Readiness check: `/health/ready`
+2. Start run with explicit goal and mode
+3. Monitor `/api/v1/events` and `/api/v1/runs/{id}/graph`
+4. Apply pause/resume/cancel controls as needed
+5. Archive evidence (events, graph, attempts)
+
+## Incident handling
+
+- Use pause first when uncertainty is high.
+- Cancel when policy breach or uncontrolled retry emerges.
+- Attach evidence paths to postmortem timeline.
+
+## Gate-minded operations
+
+- Quality target >= 0.90
+- Time improvement >= 25%
+- Cost improvement >= 20%
+- Regression must remain false

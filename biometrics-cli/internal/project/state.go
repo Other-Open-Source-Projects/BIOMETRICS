@@ -1,6 +1,7 @@
 package project
 
 import (
+	"biometrics-cli/internal/paths"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -19,7 +20,7 @@ type Boulder struct {
 }
 
 func GetNextTask(projectID string) (*Task, error) {
-	boulderPath := filepath.Join("/Users/jeremy/.sisyphus/plans", projectID, "boulder.json")
+	boulderPath := filepath.Join(paths.SisyphusPlansDir(projectID), "boulder.json")
 
 	data, err := os.ReadFile(boulderPath)
 	if err != nil {
@@ -45,7 +46,7 @@ func GetNextTask(projectID string) (*Task, error) {
 }
 
 func MarkTaskCompleted(projectID string, taskID string) error {
-	boulderPath := filepath.Join("/Users/jeremy/.sisyphus/plans", projectID, "boulder.json")
+	boulderPath := filepath.Join(paths.SisyphusPlansDir(projectID), "boulder.json")
 
 	data, err := os.ReadFile(boulderPath)
 	if err != nil {

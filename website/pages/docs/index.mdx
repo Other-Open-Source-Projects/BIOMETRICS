@@ -1,0 +1,65 @@
+---
+title: Docs Home (Diataxis)
+description: "Navigate BIOMETRICS documentation by intent: tutorials, how-to, reference, explanation."
+---
+
+import { DocsSearchFallback } from '../../components/DocsSearchFallback'
+
+## Start by intent
+
+Use instant search first, then go into the lane that matches your role and task.
+
+<DocsSearchFallback />
+
+<div className="docs-intent-grid">
+  <a className="docs-intent-card intent-tutorial" href="/docs/tutorials/first-successful-run">
+    <span className="intent-tag">Tutorial</span>
+    <h3>First successful run</h3>
+    <p>From local clone to evidence-backed run in under 10 minutes.</p>
+  </a>
+  <a className="docs-intent-card intent-howto" href="/docs/how-to/run-control-actions">
+    <span className="intent-tag">How-to</span>
+    <h3>Run control actions</h3>
+    <p>Operator-safe pause/resume/cancel patterns with evidence requirements.</p>
+  </a>
+  <a className="docs-intent-card intent-reference" href="/docs/reference/api">
+    <span className="intent-tag">Reference</span>
+    <h3>API and contracts</h3>
+    <p>Canonical OpenAPI and JSON schemas for exact implementation truth.</p>
+  </a>
+  <a className="docs-intent-card intent-explanation" href="/docs/explanations/control-plane-architecture">
+    <span className="intent-tag">Explanation</span>
+    <h3>Control-plane architecture</h3>
+    <p>System boundaries, tradeoffs, and governance model for scaling teams.</p>
+  </a>
+</div>
+
+## Enterprise command center
+
+<div className="docs-ops-grid">
+  <article className="docs-ops-card">
+    <h3>Security baseline</h3>
+    <p>Review hardening defaults before first production-like run.</p>
+    <a href="/docs/security/defaults">Open security defaults</a>
+  </article>
+  <article className="docs-ops-card">
+    <h3>Production operations</h3>
+    <p>Runbook-first operations for readiness, incidents, and recovery.</p>
+    <a href="/docs/runbooks/production-operations">Open production runbook</a>
+  </article>
+  <article className="docs-ops-card">
+    <h3>Release traceability</h3>
+    <p>Track website and docs change points with explicit release notes.</p>
+    <a href="/docs/changelog">Open changelog</a>
+  </article>
+</div>
+
+## Primary entry points
+
+- [Tutorial: first successful run](/docs/tutorials/first-successful-run)
+- [How-to: pause/resume/cancel safely](/docs/how-to/run-control-actions)
+- [Reference: API and contracts](/docs/reference/api)
+- [Reference: CLI entrypoints](/docs/reference/cli)
+- [Explanation: control-plane architecture](/docs/explanations/control-plane-architecture)
+- [Security defaults](/docs/security/defaults)
+- [Runbook: production operations](/docs/runbooks/production-operations)

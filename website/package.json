@@ -1,0 +1,45 @@
+{
+  "name": "biometrics-website",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@10.10.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=10.10.0 <11"
+  },
+  "scripts": {
+    "dev": "NEXT_TELEMETRY_DISABLED=1 node ./node_modules/next/dist/bin/next dev",
+    "sync:specs": "node ./scripts/sync-specs.mjs",
+    "build": "pnpm run sync:specs && NEXT_TELEMETRY_DISABLED=1 node ./node_modules/next/dist/bin/next build",
+    "build:cloudflare": "CLOUDFLARE_PAGES=1 pnpm run sync:specs && NEXT_TELEMETRY_DISABLED=1 node ./node_modules/next/dist/bin/next build",
+    "cf:project:create": "node ./node_modules/wrangler/bin/wrangler.js pages project create biometrics-website --production-branch main",
+    "deploy:cloudflare": "pnpm run build:cloudflare && node ./node_modules/wrangler/bin/wrangler.js pages deployment create out --project-name biometrics-website --branch ${CF_PAGES_BRANCH:-main} --commit-hash ${CF_PAGES_COMMIT_SHA:-manual} --commit-message \"${CF_PAGES_COMMIT_MESSAGE:-manual deploy}\" --commit-dirty=true --skip-caching",
+    "start": "NEXT_TELEMETRY_DISABLED=1 node ./node_modules/next/dist/bin/next start",
+    "test:frontmatter": "node ./scripts/validate-frontmatter.mjs",
+    "test:links": "node ./scripts/check-links.mjs",
+    "test:locales": "node ./scripts/check-locales.mjs",
+    "test:structured": "node ./scripts/check-structured-data.mjs",
+    "test:sitemap": "node ./scripts/check-sitemap-robots.mjs",
+    "test:content": "pnpm run test:frontmatter && pnpm run test:links && pnpm run test:locales && pnpm run test:structured && pnpm run test:sitemap",
+    "test:e2e": "node ./node_modules/@playwright/test/cli.js test",
+    "test:lighthouse": "node ./node_modules/@lhci/cli/src/cli.js autorun --config=.lighthouserc.json"
+  },
+  "dependencies": {
+    "next": "14.2.35",
+    "nextra": "2.13.4",
+    "nextra-theme-docs": "2.13.4",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@lhci/cli": "0.15.1",
+    "@next/swc-wasm-nodejs": "14.2.33",
+    "@playwright/test": "1.52.0",
+    "@types/node": "20.17.0",
+    "@types/react": "18.3.12",
+    "gray-matter": "4.0.3",
+    "typescript": "5.9.2",
+    "wrangler": "4.69.0"
+  }
+}

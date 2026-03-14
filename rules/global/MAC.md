@@ -8,7 +8,12 @@ This document defines the strict rules for macOS pathing, permissions, and packa
 
 ## 1. Absolute Pathing Mandate
 
-Never use relative paths. Always use /Users/jeremy/...
+Never hard-code machine-specific paths like `/Users/<name>/...`.
+
+Preferred rules:
+- Inside this repo, prefer repo-relative paths.
+- For user-local state, derive paths from `$HOME` (Go: `os.UserHomeDir()`) and allow env overrides.
+- When you must output an absolute path, use `$HOME/...` or a value from config, not a specific username.
 
 ### 1.1 Absolute Pathing Mandate - Deep Dive Protocol 1
 
@@ -2057,4 +2062,3 @@ protocol_15:
 ### Edge Case 20: Unforeseen System State
 **Symptom:** The system enters an undefined state during execution.
 **Resolution:** Trigger the global kill-switch, dump memory logs to `/logs/crash_20.log`, and await human intervention. Do not attempt blind fixes.
-

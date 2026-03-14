@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biometrics.dev/contracts/eval_run.schema.json",
+  "title": "EvalRun",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "candidate_strategy_mode",
+    "baseline_strategy_mode",
+    "sample_size",
+    "dataset_id",
+    "status",
+    "metrics",
+    "regression_detected",
+    "started_at"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "candidate_strategy_mode": {
+      "type": "string",
+      "enum": ["deterministic", "adaptive", "arena"]
+    },
+    "baseline_strategy_mode": {
+      "type": "string",
+      "enum": ["deterministic", "adaptive", "arena"]
+    },
+    "sample_size": { "type": "integer", "minimum": 1 },
+    "dataset_id": { "type": "string", "minLength": 1 },
+    "seed": { "type": "integer" },
+    "tasks_limit": { "type": "integer", "minimum": 1 },
+    "competitor_baselines": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "status": {
+      "type": "string",
+      "enum": ["queued", "running", "completed", "failed"]
+    },
+    "metrics": {
+      "type": "object",
+      "required": ["quality_score", "median_time_to_green_seconds", "cost_per_success", "composite_score"],
+      "properties": {
+        "quality_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "median_time_to_green_seconds": { "type": "number", "minimum": 0 },
+        "cost_per_success": { "type": "number", "minimum": 0 },
+        "composite_score": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "comparison": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "quality_delta",
+          "time_to_green_improvement_percent",
+          "cost_improvement_percent",
+          "composite_delta"
+        ],
+        "properties": {
+          "quality_delta": { "type": "number" },
+          "time_to_green_improvement_percent": { "type": "number" },
+          "cost_improvement_percent": { "type": "number" },
+          "composite_delta": { "type": "number" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "gate_pack_v1": {
+      "type": "object",
+      "required": ["quality", "time", "cost", "regression", "all_pass"],
+      "properties": {
+        "quality": { "type": "boolean" },
+        "time": { "type": "boolean" },
+        "cost": { "type": "boolean" },
+        "regression": { "type": "boolean" },
+        "all_pass": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "evidence_paths": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "regression_detected": { "type": "boolean" },
+    "error": { "type": "string" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "finished_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

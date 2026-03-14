@@ -19,54 +19,17 @@ output:
   # Print linter name
   print-linter-name: true
   
-  # Make issues output unique by line
-  uniq-by-line: true
-  
   # Show fix suggestions
   show-fixes: true
 
 # Linters configuration
 linters:
-  # Enable specific linters only
+  disable-all: true
   enable:
-    # Standard linters
-    - govet           # Go's standard vet tool
-    - errcheck        # Check for unchecked errors
-    - staticcheck     # Advanced Go linter
-    - ineffassign     # Detect ineffective assignments
-    - typecheck       # Parse and type-check code
-    - gosimple        # Suggestions for simplifying code
-    - gofmt           # Check formatting
-    - goimports       # Check imports formatting
-    
-    # Additional useful linters
-    - unused          # Check for unused code
-    - misspell        # Spelling mistakes
-    - revive          # Drop-in replacement for golint
-    - prealloc        # Find slice declarations that can be pre-allocated
-    - unconvert       # Remove unnecessary type conversions
-    - nakedret        # Find naked returns in functions
-    - gocyclo         # Compute cyclomatic complexity
-    - dupl            # Find duplicate code
-    - goconst         # Find repeated strings
-    - lll             # Line length checker
-    - gocritic        # Highly extensible Go source code linter
-    - godox           # Search for TODO/BUG/FIXME comments
-    - whitespace      # Check for unnecessary whitespace
+    - gofmt
+    - typecheck
   
-  # Disable specific linters
-  disable:
-    - exhaustruct     # Too strict for structs (requires all fields)
-    - varnamelen      # Too opinionated about variable names
-    - forcetypeassert # Sometimes type assertions are necessary
-  
-  # Enable all linters (then we disable specific ones)
-  enable-all: true
-  
-  # Maximum issues per linter
   max-issues-per-linter: 50
-  
-  # Maximum same issues
   max-same-issues: 10
 
 # Linter-specific settings
@@ -166,6 +129,8 @@ linters-settings:
 
 # Issues configuration
 issues:
+  uniq-by-line: true
+
   # Don't use default exclude rules
   exclude-use-default: false
   

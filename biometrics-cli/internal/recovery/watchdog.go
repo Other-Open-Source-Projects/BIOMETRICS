@@ -8,6 +8,10 @@ import (
 
 // Watchdog überwacht einen Context und bricht ihn nach einem Timeout ab
 func StartWatchdog(logger *slog.Logger, taskID string, timeout time.Duration) (context.Context, context.CancelFunc) {
+	if timeout <= 0 {
+		return context.WithCancel(context.Background())
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 
 	go func() {

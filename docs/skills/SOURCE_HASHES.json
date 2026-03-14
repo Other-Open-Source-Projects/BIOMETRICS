@@ -1,0 +1,17 @@
+{
+  "generated_at": "2026-02-25T23:36:25Z",
+  "entries": {
+    "third_party/openai-skills/.system/skill-creator/SKILL.md": "a17383bfb1448637ac1f757ad891ddb9676fa30b0eff620200f0e1cbc0cc0d50",
+    "third_party/openai-skills/.system/skill-creator/agents/openai.yaml": "d07d21b93fcf3d4dc8d9a3399c05fc226a49a333a96d3e1c68b451b8dd9eade6",
+    "third_party/openai-skills/.system/skill-creator/license.txt": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "third_party/openai-skills/.system/skill-creator/scripts/generate_openai_yaml.py": "b8f6be33a9d72dd7a8da02e7a9fffea23dc79e94862e6dd6358b57a8899d8f73",
+    "third_party/openai-skills/.system/skill-creator/scripts/init_skill.py": "bcb8982d3f033a094f2f1be43123ac8537e2562d25d8ba4d8ef2196ae514d96d",
+    "third_party/openai-skills/.system/skill-creator/scripts/quick_validate.py": "6cc9dc3199c935916cf6f73fcbbbb0e3bb1b58c8f5109fefa499978908164f51",
+    "third_party/openai-skills/.system/skill-installer/LICENSE.txt": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "third_party/openai-skills/.system/skill-installer/SKILL.md": "09df0ea7921f63d51befae9fc8f71daece5ef49d7b96e35fff8b18d15d6afda7",
+    "third_party/openai-skills/.system/skill-installer/agents/openai.yaml": "5ce223d8b1070b82c42298538f1b8d376f788eb9e7a42a987e8c094070d73f0e",
+    "third_party/openai-skills/.system/skill-installer/scripts/github_utils.py": "61c1bbe2ae217433b4b6f9f09f21aca4df52c12598068343ade719f706e4859b",
+    "third_party/openai-skills/.system/skill-installer/scripts/install-skill-from-github.py": "0fbbd36e8ea294442c0bd48d6f610a2e8656216bfef5c322f1dcf448ef2f09f1",
+    "third_party/openai-skills/.system/skill-installer/scripts/list-skills.py": "e4e1f78ca3d045827f2a05cfd99fae57cc7c1a1bfeba8704029108834debff35"
+  }
+}

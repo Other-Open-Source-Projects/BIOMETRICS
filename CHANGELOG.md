@@ -19,7 +19,28 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
 
 ## [Unreleased]
 
-Coming soon...
+### Added
+
+- OpenCode extension surfaces (repo-first): `.opencode/commands/*`, `.opencode/plugins/biometrics.ts` (loader), `opencode-config/plugins/biometrics.ts` (implementation).
+- Singleton OpenCode config gate: `scripts/check-opencode-singleton.sh` (enforced by `scripts/release/check-gates.sh`).
+- Read-only OpenCode diagnostics tools: `biometrics.opencode.status`, `biometrics.controlplane.status`, `biometrics.controlplane.logs`.
+
+### Fixed
+
+- OpenCode CLI drift: all BIOMETRICS subprocess calls now use `opencode run` (compatible with OpenCode `1.2.24`), including health checks (`opencode --version`).
+- Release gates: stop flagging `oh-my-opencode.json` mentions as legacy; enforce explicit repo-local config duplication bans instead.
+
+### Changed
+
+- OpenCode execution directory resolution: `BIOMETRICS_OPENCODE_DIR` → `BIOMETRICS_WORKSPACE` → process working directory.
+- OpenCode plugin safety: all mutating tools require `confirm:true`.
+- Remove legacy V2 orchestrator code and remove repo-local runtime OpenCode config copies.
+- Repo hygiene: remove tracked Mach-O binaries from `biometrics-cli/` and treat binaries as build artifacts (`bin/`).
+
+### Security
+
+- Reduce shell-injection surface in the OpenCode plugin command runner and validate env keys.
+- `biometrics.controlplane.logs` redacts common secret/token patterns.
 
 ---
 

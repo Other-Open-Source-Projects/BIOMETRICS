@@ -1,0 +1,26 @@
+---
+title: Install on macOS
+description: macOS install and validation flow for BIOMETRICS.
+---
+
+import { VerifyBlock } from '../../components/VerifyBlock'
+
+## Install
+
+```bash
+git clone <your-repo-url> BIOMETRICS
+cd BIOMETRICS
+./biometrics-onboard
+```
+
+<VerifyBlock title="Verify PATH export hint" expected="warnings[] empty or actionable">
+Check `.biometrics/onboard/report.json` and resolve non-blocking warnings.
+</VerifyBlock>
+
+## Start and verify
+
+```bash
+cd biometrics-cli
+go run ./cmd/controlplane
+curl -fsS http://127.0.0.1:59013/health/ready
+```

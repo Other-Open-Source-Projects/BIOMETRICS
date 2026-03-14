@@ -1,9 +1,11 @@
 package skills
 
 import (
+	"biometrics-cli/internal/paths"
 	"biometrics-cli/internal/state"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -54,7 +56,7 @@ func (a *AutoSkillBuilder) AnalyzePatterns() {
 func (a *AutoSkillBuilder) loadPromptHistory() []string {
 	var prompts []string
 
-	data, err := os.ReadFile("/Users/jeremy/.sisyphus/prompt_history.json")
+	data, err := os.ReadFile(paths.SisyphusPromptHistoryPath())
 	if err != nil {
 		return prompts
 	}
@@ -198,7 +200,14 @@ func (a *AutoSkillBuilder) persistGeneratedSkills() {
 
 	content += "}\n"
 
-	os.WriteFile("/Users/jeremy/dev/BIOMETRICS/biometrics-cli/internal/skills/registry.go", []byte(content), 0644)
+	repoRoot, err := paths.FindRepoRoot()
+	if err != nil {
+		state.GlobalState.Log("WARNING", fmt.Sprintf("AUTO-SKILL-BUILDER: cannot locate repo root: %v", err))
+		return
+	}
+	outPath := filepath.Join(repoRoot, "biometrics-cli", "internal", "skills", "registry.go")
+	_ = os.MkdirAll(filepath.Dir(outPath), 0755)
+	_ = os.WriteFile(outPath, []byte(content), 0644)
 }
 
 func SelfTrain() {

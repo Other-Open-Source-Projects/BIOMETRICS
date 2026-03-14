@@ -1,0 +1,21 @@
+---
+title: Reference - CLI
+description: CLI entrypoints and operational command references.
+---
+
+## Primary entrypoints
+
+- `./biometrics-onboard`
+- `go run ./biometrics-cli/cmd/controlplane`
+
+## Useful operational commands
+
+```bash
+./biometrics-onboard --doctor
+./biometrics-onboard --resume
+```
+
+```bash
+curl -fsS http://127.0.0.1:59013/health/ready
+curl -fsS http://127.0.0.1:59013/api/v1/projects
+```

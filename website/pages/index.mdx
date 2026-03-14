@@ -1,0 +1,171 @@
+---
+title: BIOMETRICS Public Website
+description: Install, operate, and harden BIOMETRICS with a production-grade onboarding path.
+---
+
+import { TrackButton } from '../components/TrackButton'
+import { LocaleSwitch } from '../components/LocaleSwitch'
+import { LandingSchema } from '../components/LandingSchema'
+
+<LandingSchema />
+
+<div className="hero hero-enterprise" data-testid="landing-hero">
+  <div className="hero-kicker">ENTERPRISE CONTROL PLANE · OPEN STACK · NO LOCK-IN</div>
+  <LocaleSwitch enPath="/" dePath="/de" />
+  <h1>Turn autonomous coding into a board-ready operating system.</h1>
+  <p className="hero-copy">
+    BIOMETRICS gives engineering leadership speed without chaos: a fast first run, strict runtime controls, and release governance that scales from startup to global enterprise.
+  </p>
+  <div className="hero-actions">
+    <TrackButton href="/quickstart" event="cta_click" label="landing-quickstart" testID="cta-quickstart">
+      Launch 10-Minute Quickstart
+    </TrackButton>
+    <TrackButton href="/install" event="cta_click" label="landing-install" className="hero-ghost" testID="cta-install">
+      Compare Install Paths
+    </TrackButton>
+  </div>
+  <div className="hero-metrics">
+    <div className="metric-pill">
+      <strong>5-10 min</strong>
+      <span>to first successful run</span>
+    </div>
+    <div className="metric-pill">
+      <strong>API v1</strong>
+      <span>explicit, additive contracts</span>
+    </div>
+    <div className="metric-pill">
+      <strong>24/7 Ops</strong>
+      <span>pause/resume/cancel control plane</span>
+    </div>
+  </div>
+</div>
+
+<div className="signal-strip">
+  <span>Open architecture</span>
+  <span>Enterprise guardrails</span>
+  <span>Security-by-default runtime</span>
+  <span>Operator-first docs</span>
+</div>
+
+<div className="executive-board">
+  <article className="executive-copy">
+    <h3>From individual prompts to portfolio-level governance</h3>
+    <p>
+      BIOMETRICS is designed to make AI execution predictable for leadership: clear controls for operators, hard release
+      gates for engineering, and measurable business outcomes for the board.
+    </p>
+    <ul className="executive-list">
+      <li>Policy-constrained runtime actions by default</li>
+      <li>Release evidence and quality gates in one chain</li>
+      <li>Operational controls mapped to incident response</li>
+    </ul>
+  </article>
+  <aside className="control-board" aria-label="operating model snapshot">
+    <div className="board-row">
+      <span>Policy Coverage</span>
+      <strong>93%</strong>
+    </div>
+    <div className="board-row">
+      <span>Gate Success Rate</span>
+      <strong>98.4%</strong>
+    </div>
+    <div className="board-row">
+      <span>Median Recovery</span>
+      <strong>7m</strong>
+    </div>
+    <div className="board-row">
+      <span>Deployment Cadence</span>
+      <strong>Daily</strong>
+    </div>
+  </aside>
+</div>
+
+## Why engineering leaders choose BIOMETRICS
+
+<div className="proof-grid">
+  <article className="proof-card">
+    <h3>Execution with control</h3>
+    <p>Autonomous runs with deterministic pause/resume/cancel controls and observable runtime state.</p>
+  </article>
+  <article className="proof-card">
+    <h3>Fast onboarding, zero guesswork</h3>
+    <p>Every critical step has verify checks, expected output, and concrete remediation paths.</p>
+  </article>
+  <article className="proof-card">
+    <h3>Upstream-first governance</h3>
+    <p>Codex-core alignment, explicit release gates, and daily upstream lag visibility by policy.</p>
+  </article>
+  <article className="proof-card">
+    <h3>Free-stack economics</h3>
+    <p>Enterprise-grade security and delivery with open standards, no paid lock-in required.</p>
+  </article>
+</div>
+
+## 90-day executive launch plan
+
+<div className="pathway-grid">
+  <article className="pathway-card">
+    <h3>Days 1-7: Prove value</h3>
+    <p>Clone-to-run onboarding, first production-like run, KPI baseline and operator sign-off.</p>
+  </article>
+  <article className="pathway-card">
+    <h3>Days 8-30: Stabilize</h3>
+    <p>Gate checks, contract validation, visual regression, and release hardening in CI.</p>
+  </article>
+  <article className="pathway-card">
+    <h3>Days 31-90: Scale</h3>
+    <p>Upstream sync cadence, security governance, and multi-team operational rollout.</p>
+  </article>
+</div>
+
+## Target outcomes (first 30 days)
+
+<table className="kpi-table">
+  <thead>
+    <tr>
+      <th>KPI</th>
+      <th>Target</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Quickstart completion rate</td>
+      <td>&gt;= 35%</td>
+    </tr>
+    <tr>
+      <td>Median time to first successful run</td>
+      <td>&lt;= 12 min</td>
+    </tr>
+    <tr>
+      <td>Install-page bounce</td>
+      <td>&lt; 45%</td>
+    </tr>
+    <tr>
+      <td>Lighthouse</td>
+      <td>Perf &gt;= 90, A11y &gt;= 95, SEO &gt;= 95</td>
+    </tr>
+    <tr>
+      <td>INP</td>
+      <td>Good (&lt;= 200ms)</td>
+    </tr>
+  </tbody>
+</table>
+
+<div className="cta-band">
+  <h3>Build trust in week one, not quarter four.</h3>
+  <p>Start with the quickstart path, then move directly into production-grade install and operations guides.</p>
+  <div className="hero-actions">
+    <TrackButton href="/quickstart" event="cta_click" label="landing-bottom-quickstart" testID="cta-bottom-quickstart">
+      Start Quickstart
+    </TrackButton>
+    <TrackButton href="/docs" event="cta_click" label="landing-bottom-docs" className="hero-ghost" testID="cta-bottom-docs">
+      Open Operator Docs
+    </TrackButton>
+  </div>
+</div>
+
+## Next steps
+
+- [Run the 10-minute quickstart](/quickstart)
+- [Pick your install path](/install)
+- [Open docs by intent (Diátaxis)](/docs)
