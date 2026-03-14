@@ -147,9 +147,6 @@ func (s *Service) StartRun(ctx context.Context, req RunRequest) (Run, error) {
 	if err != nil {
 		return Run{}, err
 	}
-	if ctx == nil {
-		ctx = context.Background()
-	}
 	if workflow != "" {
 		s.publish("", "orchestrator.decision.explained", map[string]string{
 			"decision":  "workflow_resolved",

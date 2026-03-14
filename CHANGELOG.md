@@ -34,7 +34,7 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
 
 - OpenCode execution directory resolution: `BIOMETRICS_OPENCODE_DIR` → `BIOMETRICS_WORKSPACE` → process working directory.
 - OpenCode plugin safety: all mutating tools require `confirm:true`.
-- Archive legacy orchestrator code under `archive/legacy-v2/` and remove repo-local runtime OpenCode config copies.
+- Remove legacy V2 orchestrator code and remove repo-local runtime OpenCode config copies.
 - Repo hygiene: remove tracked Mach-O binaries from `biometrics-cli/` and treat binaries as build artifacts (`bin/`).
 
 ### Security

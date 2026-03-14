@@ -15,7 +15,6 @@ BIOMETRICS V3 is an OpenCode CLI extension layer (Codex-first) for autonomous 24
 - BIOMETRICS operator tooling entrypoints: `./biometrics-onboard`, `./bin/biometrics-skills`
 - Temporary compatibility shim: `biometrics-cli/cmd/biometrics`
   - The shim prints a deprecation notice and forwards to V3 runtime behavior.
-- Legacy V2 code is archive-only under `archive/legacy-v2`.
 
 ## Clone-to-Run (Official)
 

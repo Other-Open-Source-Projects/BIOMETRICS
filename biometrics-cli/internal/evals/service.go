@@ -132,10 +132,6 @@ func (s *Service) StartRun(ctx context.Context, req RunRequest) (Run, error) {
 	if err != nil {
 		return Run{}, err
 	}
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
 	now := time.Now().UTC()
 	run := Run{
 		ID:                  "eval-run-" + uuid.NewString(),

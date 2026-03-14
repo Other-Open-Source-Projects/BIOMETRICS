@@ -25,7 +25,6 @@ Date: 2026-02-25
 
 ## Legacy Policy
 
-- V2 implementation and historical reports remain under `archive/legacy-v2`.
 - Legacy paths are unsupported in active runtime/docs.
 
 ## Operator Reference

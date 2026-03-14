@@ -17,7 +17,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -469,15 +468,11 @@ func (r *Runner) stepPreflight(_ context.Context) *StepError {
 		)
 	}
 
-	var stat syscall.Statfs_t
-	if err := syscall.Statfs(r.workspace, &stat); err == nil {
-		free := stat.Bavail * uint64(stat.Bsize)
-		if free < 2*1024*1024*1024 {
-			return fail(
-				"insufficient free disk space (<2 GiB)",
-				"Free disk space and rerun onboarding.",
-			)
-		}
+	if ok, err := checkDiskSpace(r.workspace, 2*1024*1024*1024); err == nil && !ok {
+		return fail(
+			"insufficient free disk space (<2 GiB)",
+			"Free disk space and rerun onboarding.",
+		)
 	}
 
 	info, err := os.Stat(r.workspace)
@@ -1327,8 +1322,12 @@ func (r *Runner) emitStepEvent(eventType, stepID, status string, payload map[str
 		r.logf("event-write error: %v", err)
 		return
 	}
-	defer f.Close()
-	_, _ = f.Write(append(raw, '\n'))
+	if _, err := f.Write(append(raw, '\n')); err != nil {
+		r.logf("event-write error: %v", err)
+	}
+	if err := f.Close(); err != nil {
+		r.logf("event-close error: %v", err)
+	}
 }
 
 func (r *Runner) addWarning(message string, remediation ...string) {

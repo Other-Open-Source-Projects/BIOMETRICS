@@ -64,7 +64,7 @@ func TestNewRotatingWriter(t *testing.T) {
 }
 
 func TestNewRotatingWriterInvalidPath(t *testing.T) {
-	logFile := "/nonexistent/path/test.log"
+	logFile := ""
 
 	cfg := RotationConfig{
 		Enabled: true,

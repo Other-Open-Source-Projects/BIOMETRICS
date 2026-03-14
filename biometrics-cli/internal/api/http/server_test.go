@@ -949,24 +949,29 @@ func TestSupervisedRunCheckpointPauseAndResume(t *testing.T) {
 		t.Fatalf("expected 200 resume, got %d body=%s", resumeW.Code, resumeW.Body.String())
 	}
 
-	deadline := time.Now().Add(12 * time.Second)
+	deadline := time.Now().Add(20 * time.Second)
 	for time.Now().Before(deadline) {
 		current, err := manager.GetRun(run.ID)
 		if err != nil {
 			t.Fatalf("get run: %v", err)
 		}
 		switch current.Status {
-		case contracts.RunRunning, contracts.RunCompleted:
-			_ = manager.CancelRun(run.ID)
-			waitForRunTerminalState(t, manager, run.ID)
+		case contracts.RunCompleted:
 			return
 		case contracts.RunFailed, contracts.RunCancelled:
-			t.Fatalf("expected supervised run to stay resumable, got %s", current.Status)
+			t.Fatalf("expected supervised run to complete, got %s", current.Status)
+		case contracts.RunPaused:
+			resumeReq := httptest.NewRequest(http.MethodPost, "/api/v1/runs/"+run.ID+"/resume", nil)
+			resumeW := httptest.NewRecorder()
+			server.Handler().ServeHTTP(resumeW, resumeReq)
+			if resumeW.Code != http.StatusOK {
+				t.Fatalf("expected 200 resume, got %d body=%s", resumeW.Code, resumeW.Body.String())
+			}
 		}
 		time.Sleep(40 * time.Millisecond)
 	}
 
-	t.Fatalf("supervised run did not leave paused state before deadline")
+	t.Fatalf("supervised run did not complete before deadline")
 }
 
 func TestEventOrderingStartedBeforeCompleted(t *testing.T) {

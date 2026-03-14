@@ -88,8 +88,8 @@ Local verification already run:
 - Control plane OpenAPI: docs/api/openapi-v3-controlplane.yaml
 - Default base URL (from docs/README): http://127.0.0.1:59013
 
-## Pending Decisions (Ask Before Doing)
-- Delete `archive/legacy-v2/` and remove its doc references: user requested “no backups/archives”; this is destructive and should be confirmed before deleting.
+## Decisions
+- `archive/legacy-v2/` removed; references cleaned (CodeQL + no-archive rule).
 
 ## Research Sources (CI/Go)
 - https://github.com/golang/go/issues/43547

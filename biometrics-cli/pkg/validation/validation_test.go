@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -528,6 +529,13 @@ func TestSanitizeFilePath(t *testing.T) {
 		{"Path traversal", "../../../etc/passwd", "passwd"},
 		{"Normal path", "/home/user/file.txt", "file.txt"},
 		{"Windows path", "..\\..\\windows\\system32", "windows\\system32"},
+	}
+	if runtime.GOOS == "windows" {
+		for i := range tests {
+			if tests[i].name == "Windows path" {
+				tests[i].expected = "system32"
+			}
+		}
 	}
 
 	for _, tt := range tests {

@@ -94,7 +94,6 @@ DURATION_SECONDS=1800 RUN_INTERVAL_SECONDS=10 ./scripts/run-soak.sh
 
 ## Legacy Content Policy
 
-- Legacy V2 implementation/docs are archive-only in `archive/legacy-v2`.
 - Active docs must not prescribe removed runtime paths or deprecated endpoint families.
 
 ## Related References

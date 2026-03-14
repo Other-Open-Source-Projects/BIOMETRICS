@@ -114,7 +114,10 @@ func (r *RotatingWriter) openFile() error {
 
 	stat, err := f.Stat()
 	if err != nil {
-		f.Close()
+		closeErr := f.Close()
+		if closeErr != nil {
+			return fmt.Errorf("failed to stat log file: %w (close error: %v)", err, closeErr)
+		}
 		return fmt.Errorf("failed to stat log file: %w", err)
 	}
 
@@ -305,6 +308,28 @@ func (m *MultiWriter) Sync() error {
 	return nil
 }
 
+func (m *MultiWriter) Close() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	var firstErr error
+	for _, w := range m.writers {
+		if f, ok := w.(*os.File); ok {
+			if f == os.Stdout || f == os.Stderr {
+				continue
+			}
+		}
+		c, ok := w.(interface{ Close() error })
+		if !ok {
+			continue
+		}
+		if err := c.Close(); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+	return firstErr
+}
+
 // LevelFilter provides a writer that filters by log level.
 type LevelFilter struct {
 	writer    io.Writer
@@ -348,6 +373,27 @@ func (f *LevelFilter) Write(p []byte) (n int, err error) {
 	}
 
 	return f.writer.Write(p)
+}
+
+func (f *LevelFilter) Sync() error {
+	s, ok := f.writer.(interface{ Sync() error })
+	if !ok {
+		return nil
+	}
+	return s.Sync()
+}
+
+func (f *LevelFilter) Close() error {
+	if file, ok := f.writer.(*os.File); ok {
+		if file == os.Stdout || file == os.Stderr {
+			return nil
+		}
+	}
+	c, ok := f.writer.(interface{ Close() error })
+	if !ok {
+		return nil
+	}
+	return c.Close()
 }
 
 // AdvancedLogger provides advanced logging capabilities with rotation.
@@ -546,6 +592,12 @@ func (l *AdvancedLogger) Close() error {
 
 	if l.writer != nil {
 		if err := l.writer.Close(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if l.multi != nil {
+		if err := l.multi.Close(); err != nil {
 			errs = append(errs, err)
 		}
 	}

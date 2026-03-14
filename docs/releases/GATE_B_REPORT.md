@@ -24,7 +24,7 @@ Gate B verifies release stability after soak, before GA tagging.
 - [ ] No deadlocks/data-corruption incidents
 - [ ] Fallback/backpressure rates within thresholds
 - [ ] Active docs synced with runtime/API
-- [ ] No active legacy V2 references outside `archive/legacy-v2`
+- [ ] No legacy V2 references in active runtime/docs
 
 ## Evidence
 - Soak summary path:

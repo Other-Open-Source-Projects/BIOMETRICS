@@ -77,7 +77,7 @@ It defines the active V3 behavior and replaces legacy V2 conventions.
 ## 8. Documentation Rules
 
 1. Active docs must describe V3 behavior only.
-2. Historical V2 documents must live under `archive/legacy-v2`.
+2. Historical V2 documents must not be retained in-repo.
 3. Migration guidance lives in `docs/guides/MIGRATION_V3.md`.
 4. Operator procedures live in `docs/guides/OPERATOR_RUNBOOK_V3.md`.
 

@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"syscall"
 )
 
 type Executor struct {
@@ -37,8 +36,7 @@ func (e *Executor) RunAgent(ctx context.Context, req AgentRequest) AgentResult {
 	args = append(args, req.Prompt)
 	cmd := exec.CommandContext(ctx, "opencode", args...)
 
-	// PFLICHT: Process Group ID setzen, damit wir den ganzen Tree killen können
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	applyProcessGroup(cmd)
 
 	// Environment Variablen setzen (Mandat 0.38 - Project Isolation)
 	cmd.Env = append(cmd.Environ(), fmt.Sprintf("PROJECT_ID=%s", req.ProjectID))
@@ -62,7 +60,7 @@ func (e *Executor) RunAgent(ctx context.Context, req AgentRequest) AgentResult {
 
 	// Cleanup: Falls Context canceled wurde, kille die GANZE Process Group!
 	if ctx.Err() != nil {
-		syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+		_ = killProcessGroup(cmd)
 		return AgentResult{Success: false, Error: ctx.Err()}
 	}
 

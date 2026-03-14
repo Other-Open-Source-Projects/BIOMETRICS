@@ -100,7 +100,7 @@ func (p *Provider) Generate(ctx context.Context, req llm.Request) (llm.Response,
 		modelID = p.defaultModel
 	}
 
-	prompt := req.Prompt
+	var prompt string
 	if modelID != "" {
 		prompt = fmt.Sprintf("[provider=gemini model=%s]\n%s", modelID, req.Prompt)
 	} else {

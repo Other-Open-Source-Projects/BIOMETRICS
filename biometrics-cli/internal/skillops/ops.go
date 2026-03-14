@@ -116,35 +116,8 @@ func (r *Runner) Create(ctx context.Context, req skillkit.CreateRequest) (skillk
 		return skillkit.OperationResult{Status: "failed", Message: "name is required"}, fmt.Errorf("name is required")
 	}
 
-	basePath := strings.TrimSpace(req.Path)
-	if basePath == "" {
-		basePath = filepath.Join(r.workspace, ".codex", "skills")
-	}
-	if !filepath.IsAbs(basePath) {
-		basePath = filepath.Join(r.workspace, basePath)
-	}
-	baseAbs, err := filepath.Abs(basePath)
+	baseAbs, err := filepath.Abs(filepath.Join(r.workspace, ".codex", "skills"))
 	if err != nil {
-		return skillkit.OperationResult{Status: "failed", Message: err.Error()}, err
-	}
-	workspaceAbs, err := filepath.Abs(r.workspace)
-	if err != nil {
-		return skillkit.OperationResult{Status: "failed", Message: err.Error()}, err
-	}
-	codexAbs, err := filepath.Abs(r.codexHome)
-	if err != nil {
-		return skillkit.OperationResult{Status: "failed", Message: err.Error()}, err
-	}
-	allowed := false
-	for _, root := range []string{workspaceAbs, codexAbs} {
-		rel, err := filepath.Rel(root, baseAbs)
-		if err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-			allowed = true
-			break
-		}
-	}
-	if !allowed {
-		err := fmt.Errorf("path traversal blocked")
 		return skillkit.OperationResult{Status: "failed", Message: err.Error()}, err
 	}
 	if err := os.MkdirAll(baseAbs, 0o755); err != nil {

@@ -234,7 +234,7 @@ func upsertMarkerBlock(path string, marker string, blockContent string) (bool, e
 		return false, err
 	}
 	existing := string(existingRaw)
-	updated := existing
+	var updated string
 
 	startIdx := strings.Index(existing, start)
 	endIdx := strings.Index(existing, end)
