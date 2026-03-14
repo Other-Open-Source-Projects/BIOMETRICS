@@ -938,21 +938,21 @@ func (s *Server) streamOrchestratorSessionEvents(
 	}
 
 	history, err := s.bus.Replay(sessionID, limit*4)
-		if err == nil {
-			for _, ev := range history {
-				if ev.RunID != sessionID {
-					continue
-				}
-				if !strings.HasPrefix(ev.Type, "orchestrator.") {
-					continue
-				}
-				if shouldSkipOrchestratorEventAtCursor(ev.Payload, cursor) {
-					continue
-				}
-				writeSSE(w, ev)
+	if err == nil {
+		for _, ev := range history {
+			if ev.RunID != sessionID {
+				continue
 			}
-			flusher.Flush()
+			if !strings.HasPrefix(ev.Type, "orchestrator.") {
+				continue
+			}
+			if shouldSkipOrchestratorEventAtCursor(ev.Payload, cursor) {
+				continue
+			}
+			writeSSE(w, ev)
 		}
+		flusher.Flush()
+	}
 
 	subID, ch := s.bus.Subscribe(128)
 	defer s.bus.Unsubscribe(subID)

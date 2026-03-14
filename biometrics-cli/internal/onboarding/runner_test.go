@@ -177,11 +177,11 @@ func testWorkspace(t *testing.T) string {
 	}
 
 	files := map[string]string{
-		filepath.Join(root, "biometrics-cli", "go.mod"):                 "module biometrics-cli\n\ngo 1.24\n",
-		filepath.Join(root, "biometrics-cli", "web-v3", "package.json"): "{\"name\":\"test\"}\n",
-		filepath.Join(root, "scripts", "init-env.sh"):                   "#!/usr/bin/env bash\nexit 0\n",
-		filepath.Join(root, ".env"):                                     "DUMMY=1\n",
-		filepath.Join(root, "third_party", "openai-skills", ".system", "skill-creator", "SKILL.md"):  "---\nname: skill-creator\ndescription: create skills.\n---\n",
+		filepath.Join(root, "biometrics-cli", "go.mod"):                                               "module biometrics-cli\n\ngo 1.24\n",
+		filepath.Join(root, "biometrics-cli", "web-v3", "package.json"):                               "{\"name\":\"test\"}\n",
+		filepath.Join(root, "scripts", "init-env.sh"):                                                 "#!/usr/bin/env bash\nexit 0\n",
+		filepath.Join(root, ".env"):                                                                   "DUMMY=1\n",
+		filepath.Join(root, "third_party", "openai-skills", ".system", "skill-creator", "SKILL.md"):   "---\nname: skill-creator\ndescription: create skills.\n---\n",
 		filepath.Join(root, "third_party", "openai-skills", ".system", "skill-installer", "SKILL.md"): "---\nname: skill-installer\ndescription: install skills.\n---\n",
 	}
 	for path, contents := range files {

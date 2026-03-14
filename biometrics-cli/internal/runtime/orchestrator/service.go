@@ -55,16 +55,16 @@ func NewService(backend runBackend, bus eventPublisher) *Service {
 	_ = os.MkdirAll(arenaRoot, 0o755)
 
 	svc := &Service{
-		backend:       backend,
-		bus:           bus,
-		workspaceRoot: workspace,
-		arenaRoot:     arenaRoot,
-		memory:        NewMemoryStore(),
-		plans:         make(map[string]Plan),
-		runs:          make(map[string]Run),
-		runInputs:     make(map[string]RunRequest),
-		scorecards:    make(map[string]Scorecard),
-		arenaPaths:    make(map[string]map[string]string),
+		backend:        backend,
+		bus:            bus,
+		workspaceRoot:  workspace,
+		arenaRoot:      arenaRoot,
+		memory:         NewMemoryStore(),
+		plans:          make(map[string]Plan),
+		runs:           make(map[string]Run),
+		runInputs:      make(map[string]RunRequest),
+		scorecards:     make(map[string]Scorecard),
+		arenaPaths:     make(map[string]map[string]string),
 		sessionRuntime: make(map[string]*sessionRuntimeState),
 	}
 	svc.initSessionDependencies(backend)

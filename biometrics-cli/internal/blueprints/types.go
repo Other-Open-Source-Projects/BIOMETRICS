@@ -3,8 +3,8 @@ package blueprints
 import "time"
 
 type Catalog struct {
-	Version string         `json:"version"`
-	Source  SourceRef      `json:"source"`
+	Version  string        `json:"version"`
+	Source   SourceRef     `json:"source"`
 	Profiles []ProfileSpec `json:"profiles"`
 }
 
@@ -55,12 +55,12 @@ type ApplyOptions struct {
 }
 
 type ApplyResult struct {
-	ProjectPath     string    `json:"project_path"`
-	ProfileID       string    `json:"profile_id"`
-	BlueprintPath   string    `json:"blueprint_path"`
-	AgentsPath      string    `json:"agents_path"`
-	AppliedModules  []string  `json:"applied_modules"`
-	SkippedModules  []string  `json:"skipped_modules"`
-	ChangedFiles    []string  `json:"changed_files"`
-	GeneratedAt     time.Time `json:"generated_at"`
+	ProjectPath    string    `json:"project_path"`
+	ProfileID      string    `json:"profile_id"`
+	BlueprintPath  string    `json:"blueprint_path"`
+	AgentsPath     string    `json:"agents_path"`
+	AppliedModules []string  `json:"applied_modules"`
+	SkippedModules []string  `json:"skipped_modules"`
+	ChangedFiles   []string  `json:"changed_files"`
+	GeneratedAt    time.Time `json:"generated_at"`
 }

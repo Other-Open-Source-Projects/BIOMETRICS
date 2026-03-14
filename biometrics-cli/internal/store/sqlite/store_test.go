@@ -262,16 +262,16 @@ func TestCreateListAndUpdateOptimizerRecommendation(t *testing.T) {
 	t.Cleanup(func() { _ = s.Close() })
 
 	created, err := s.CreateOptimizerRecommendation(OptimizerRecommendationRecord{
-		ProjectID:      "biometrics",
-		Goal:           "improve apex gates",
-		StrategyMode:   "adaptive",
-		SchedulerMode:  "dag_parallel_v1",
-		MaxParallelism: 8,
+		ProjectID:       "biometrics",
+		Goal:            "improve apex gates",
+		StrategyMode:    "adaptive",
+		SchedulerMode:   "dag_parallel_v1",
+		MaxParallelism:  8,
 		ModelPreference: "codex",
-		FallbackChain:  []string{"gemini", "nim"},
-		ContextBudget:  36000,
-		Objective:      OptimizerObjectiveRecord{Quality: 0.6, Speed: 0.25, Cost: 0.15},
-		Confidence:     "high",
+		FallbackChain:   []string{"gemini", "nim"},
+		ContextBudget:   36000,
+		Objective:       OptimizerObjectiveRecord{Quality: 0.6, Speed: 0.25, Cost: 0.15},
+		Confidence:      "high",
 		PredictedGates: OptimizerPredictedGatesRecord{
 			QualityPass:                 true,
 			TimePass:                    true,
@@ -329,17 +329,17 @@ func TestUpsertAndGetOptimizerValidation(t *testing.T) {
 	t.Cleanup(func() { _ = s.Close() })
 
 	recommendation, err := s.CreateOptimizerRecommendation(OptimizerRecommendationRecord{
-		ProjectID:      "biometrics",
-		Goal:           "validate recommendation",
-		StrategyMode:   "adaptive",
-		SchedulerMode:  "dag_parallel_v1",
-		MaxParallelism: 8,
+		ProjectID:       "biometrics",
+		Goal:            "validate recommendation",
+		StrategyMode:    "adaptive",
+		SchedulerMode:   "dag_parallel_v1",
+		MaxParallelism:  8,
 		ModelPreference: "codex",
-		ContextBudget:  32000,
-		Objective:      OptimizerObjectiveRecord{Quality: 0.5, Speed: 0.3, Cost: 0.2},
-		Confidence:     "medium",
-		PredictedGates: OptimizerPredictedGatesRecord{},
-		Status:         "generated",
+		ContextBudget:   32000,
+		Objective:       OptimizerObjectiveRecord{Quality: 0.5, Speed: 0.3, Cost: 0.2},
+		Confidence:      "medium",
+		PredictedGates:  OptimizerPredictedGatesRecord{},
+		Status:          "generated",
 	})
 	if err != nil {
 		t.Fatalf("create recommendation: %v", err)

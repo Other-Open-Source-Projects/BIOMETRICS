@@ -17,17 +17,17 @@ const (
 )
 
 type OrchestratorSessionRecord struct {
-	ID             string     `json:"id"`
-	ProjectID      string     `json:"project_id"`
-	Status         string     `json:"status"`
-	GuardrailPaused bool      `json:"guardrail_paused"`
-	GuardrailReason string    `json:"guardrail_reason,omitempty"`
-	MaxJobs        int        `json:"max_jobs"`
-	JobsStarted    int        `json:"jobs_started"`
-	CreatedAt      time.Time  `json:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at"`
-	PausedAt       *time.Time `json:"paused_at,omitempty"`
-	KilledAt       *time.Time `json:"killed_at,omitempty"`
+	ID              string     `json:"id"`
+	ProjectID       string     `json:"project_id"`
+	Status          string     `json:"status"`
+	GuardrailPaused bool       `json:"guardrail_paused"`
+	GuardrailReason string     `json:"guardrail_reason,omitempty"`
+	MaxJobs         int        `json:"max_jobs"`
+	JobsStarted     int        `json:"jobs_started"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
+	PausedAt        *time.Time `json:"paused_at,omitempty"`
+	KilledAt        *time.Time `json:"killed_at,omitempty"`
 }
 
 type OrchestratorMessageRecord struct {
@@ -42,16 +42,16 @@ type OrchestratorMessageRecord struct {
 }
 
 type OrchestratorAgentStateRecord struct {
-	SessionID    string     `json:"session_id"`
-	AgentID      string     `json:"agent_id"`
-	Status       string     `json:"status"`
-	ModelProvider string    `json:"model_provider,omitempty"`
-	ModelID      string     `json:"model_id,omitempty"`
+	SessionID     string     `json:"session_id"`
+	AgentID       string     `json:"agent_id"`
+	Status        string     `json:"status"`
+	ModelProvider string     `json:"model_provider,omitempty"`
+	ModelID       string     `json:"model_id,omitempty"`
 	CooldownUntil *time.Time `json:"cooldown_until,omitempty"`
-	LastError    string     `json:"last_error,omitempty"`
-	LastActiveAt *time.Time `json:"last_active_at,omitempty"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at"`
+	LastError     string     `json:"last_error,omitempty"`
+	LastActiveAt  *time.Time `json:"last_active_at,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
 }
 
 type OrchestratorJobLinkRecord struct {

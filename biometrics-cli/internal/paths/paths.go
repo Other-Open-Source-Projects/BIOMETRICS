@@ -97,4 +97,3 @@ func FindRepoRoot() (string, error) {
 	}
 	return "", errors.New("could not find BIOMETRICS repo root from cwd")
 }
-
