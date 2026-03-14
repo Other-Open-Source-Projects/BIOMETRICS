@@ -66,13 +66,6 @@ jobs:
           output: sarif-results
           upload: true
 
-      - name: Upload SARIF Results
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: sarif-results/${{ matrix.language }}.sarif
-          category: "/language:${{ matrix.language }}"
-
   # ============================================
   # DEPENDENCY REVIEW - Check for Vulnerable Dependencies
   # ============================================
@@ -95,7 +88,6 @@ jobs:
         with:
           fail-on-severity: moderate
           deny-licenses: GPL-3.0, AGPL-3.0
-          allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC
 
   # ============================================
   # TRUFFLEHOG - Secret Detection
