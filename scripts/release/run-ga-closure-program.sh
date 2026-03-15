@@ -27,6 +27,15 @@ timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
 log_file="${LOG_DIR}/ga-closure-${timestamp}.log"
 exec > >(tee -a "${log_file}") 2>&1
 
+if [[ "${VISUAL_TRUTH:-0}" == "1" && -z "${VISUAL_TRUTH_SESSION:-}" ]]; then
+  export VISUAL_TRUTH_SESSION="ga-closure-${timestamp}"
+fi
+
+if [[ "${VISUAL_TRUTH:-0}" == "1" && -x "${ROOT_DIR}/scripts/visual_truth/vt" ]]; then
+  echo "[ga-closure] visual truth enabled: running vt doctor"
+  "${ROOT_DIR}/scripts/visual_truth/vt" doctor
+fi
+
 usage() {
   cat <<USAGE
 Usage: $(basename "$0") [options]
@@ -280,7 +289,12 @@ run_step() {
   echo "[ga-closure] step=${step} started"
   local cmd_pid=""
   local cmd_rc=0
-  "$@" &
+  local vt_bin="${ROOT_DIR}/scripts/visual_truth/vt"
+  if [[ "${VISUAL_TRUTH:-0}" == "1" && -x "${vt_bin}" ]]; then
+    "${vt_bin}" step --name "ga-closure:${step}" -- "$@" &
+  else
+    "$@" &
+  fi
   cmd_pid="$!"
   append_state_event "${step}" "started" "started pid=${cmd_pid}"
 

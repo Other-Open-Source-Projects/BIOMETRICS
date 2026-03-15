@@ -5,10 +5,14 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 API_BASE="${API_BASE:-http://127.0.0.1:59013}"
 PROJECT_ID="${PROJECT_ID:-soak}"
-GOAL_PREFIX="${GOAL_PREFIX:-soak run}"
+GOAL_PREFIX="${GOAL_PREFIX:-soak noop (reply ok only / no file edits / no commands / no internet)}"
 GOAL_PARTS="${GOAL_PARTS:-50}"
 SCHEDULER_MODE="${SCHEDULER_MODE:-dag_parallel_v1}"
 MAX_PARALLELISM="${MAX_PARALLELISM:-8}"
+MODEL_PREFERENCE="${MODEL_PREFERENCE:-}"
+FALLBACK_CHAIN="${FALLBACK_CHAIN:-}"
+MODEL_ID="${MODEL_ID:-}"
+CONTEXT_BUDGET="${CONTEXT_BUDGET:-}"
 PROFILE_LABEL="${PROFILE_LABEL:-unspecified}"
 RUN_INTERVAL_SECONDS="${RUN_INTERVAL_SECONDS:-15}"
 POLL_INTERVAL_SECONDS="${POLL_INTERVAL_SECONDS:-2}"
@@ -156,11 +160,11 @@ print(", ".join(segments))
 PY
 )"
 
-  payload="$(python3 - "${PROJECT_ID}" "${goal}" "${SCHEDULER_MODE}" "${MAX_PARALLELISM}" <<'PY'
+  payload="$(python3 - "${PROJECT_ID}" "${goal}" "${SCHEDULER_MODE}" "${MAX_PARALLELISM}" "${MODEL_PREFERENCE}" "${FALLBACK_CHAIN}" "${MODEL_ID}" "${CONTEXT_BUDGET}" <<'PY'
 import json
 import sys
 
-project_id, goal, scheduler_mode, max_parallelism = sys.argv[1:5]
+project_id, goal, scheduler_mode, max_parallelism, model_preference, fallback_chain, model_id, context_budget = sys.argv[1:9]
 payload = {
     "project_id": project_id,
     "goal": goal,
@@ -168,6 +172,28 @@ payload = {
     "scheduler_mode": scheduler_mode,
     "max_parallelism": int(max_parallelism),
 }
+
+model_preference = model_preference.strip()
+if model_preference:
+    payload["model_preference"] = model_preference
+
+fallback_chain = fallback_chain.strip()
+if fallback_chain:
+    chain = [p.strip() for p in fallback_chain.split(",") if p.strip()]
+    if chain:
+        payload["fallback_chain"] = chain
+
+model_id = model_id.strip()
+if model_id:
+    payload["model_id"] = model_id
+
+context_budget = context_budget.strip()
+if context_budget:
+    try:
+        payload["context_budget"] = int(context_budget)
+    except Exception:
+        pass
+
 print(json.dumps(payload))
 PY
 )"

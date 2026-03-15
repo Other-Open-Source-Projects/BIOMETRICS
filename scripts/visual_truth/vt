@@ -1,0 +1,434 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  vt doctor
+  vt step --name <step_name> -- <command...>
+
+Env (all optional):
+  VISUAL_TRUTH=1                     Enable recording (default: disabled)
+  VISUAL_TRUTH_DIR=/tmp/automation_logs
+  VISUAL_TRUTH_SESSION=<id>          Session id (default: utc timestamp + pid)
+  VISUAL_TRUTH_SCREEN_SPEC=auto      avfoundation video device name (default: auto)
+  VISUAL_TRUTH_SCREEN_INDEX=auto     (deprecated) legacy device index
+  VISUAL_TRUTH_FPS=30
+  VISUAL_TRUTH_MIN_SECONDS=5         Minimum recording duration per step
+  VISUAL_TRUTH_PRE_SECONDS=0         Lead-in before command starts (recorded)
+  VISUAL_TRUTH_POST_SECONDS=0        Tail after command ends (recorded)
+  VISUAL_TRUTH_VALIDATE=0            Run NVIDIA NIM validation (default: 0)
+  VISUAL_TRUTH_VALIDATE_STRICT=1     Fail step when validation fails (default: 1)
+USAGE
+}
+
+require() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    echo "missing required command: $1" >&2
+    exit 127
+  fi
+}
+
+now_utc_rfc3339() {
+  date -u +%Y-%m-%dT%H:%M:%SZ
+}
+
+sanitize_name() {
+  local in="$1"
+  in="${in// /_}"
+  in="${in//\//_}"
+  in="${in//\\/_}"
+  in="${in//:/_}"
+  in="${in//[^A-Za-z0-9_.-]/_}"
+  printf '%s' "$in"
+}
+
+detect_screen_index() {
+  local out
+  out="$(ffmpeg -f avfoundation -list_devices true -i "" 2>&1 || true)"
+  local spec
+  spec="$(python3 - <<'PY' "$out"
+import re
+import sys
+
+text = sys.argv[1]
+best = None
+for line in text.splitlines():
+    m = re.search(r'\[\d+\]\s+(Capture screen\s+\d+)', line)
+    if m:
+        best = m.group(1)
+        break
+print(best or "")
+PY
+)"
+  if [[ -z "$spec" ]]; then
+    echo "unable to auto-detect avfoundation screen device" >&2
+    exit 2
+  fi
+  printf '%s' "$spec"
+}
+
+resolve_screen_spec() {
+  local raw="$1"
+  if [[ "$raw" == "auto" ]]; then
+    detect_screen_index
+    return
+  fi
+  if [[ "$raw" =~ ^[0-9]+$ ]]; then
+    local out
+    out="$(ffmpeg -f avfoundation -list_devices true -i "" 2>&1 || true)"
+    local spec
+    spec="$(python3 - <<'PY' "$out" "$raw"
+import re
+import sys
+
+text = sys.argv[1]
+idx = sys.argv[2]
+name = ""
+for line in text.splitlines():
+    m = re.search(rf'\[{re.escape(idx)}\]\s+(.+)$', line)
+    if m:
+        candidate = m.group(1).strip()
+        if "Capture screen" not in candidate:
+            continue
+        name = candidate
+        break
+print(name)
+PY
+)"
+    if [[ -z "$spec" ]]; then
+      echo "unable to resolve avfoundation device index ${raw}" >&2
+      exit 2
+    fi
+    printf '%s' "$spec"
+    return
+  fi
+  printf '%s' "$raw"
+}
+
+emit_event() {
+  local events_file="$1"
+  local event_type="$2"
+  local step_name="$3"
+  local extra_json="$4"
+
+  python3 - <<'PY' "$events_file" "$event_type" "$step_name" "$extra_json"
+import json
+import sys
+from datetime import datetime, timezone
+
+path = sys.argv[1]
+event_type = sys.argv[2]
+step_name = sys.argv[3]
+extra_raw = sys.argv[4]
+
+event = {
+  "at": datetime.now(timezone.utc).isoformat(),
+  "type": event_type,
+  "step": step_name,
+}
+if extra_raw:
+  try:
+    extra = json.loads(extra_raw)
+    if isinstance(extra, dict):
+      event.update(extra)
+  except Exception:
+    event["extra_raw"] = extra_raw
+
+with open(path, "a", encoding="utf-8") as f:
+  f.write(json.dumps(event, ensure_ascii=True) + "\n")
+PY
+}
+
+vt_enabled() {
+  [[ "${VISUAL_TRUTH:-0}" == "1" ]]
+}
+
+subcmd="${1:-}"
+if [[ -z "$subcmd" ]]; then
+  usage
+  exit 2
+fi
+shift || true
+
+case "$subcmd" in
+  doctor)
+    require ffmpeg
+    require python3
+    ffmpeg -version
+    ffmpeg -f avfoundation -list_devices true -i "" 2>&1 | sed -n '1,120p' || true
+
+    spec="$(detect_screen_index)"
+    tmp_dir="${VISUAL_TRUTH_DIR:-/tmp/automation_logs}/vt-doctor-$$-$(date -u +%Y%m%dT%H%M%SZ)"
+    mkdir -p "$tmp_dir"
+    tmp_video="${tmp_dir}/probe.mp4"
+    tmp_log="${tmp_dir}/probe.ffmpeg.log"
+
+    ffmpeg -nostdin -hide_banner -loglevel error -y \
+      -f avfoundation -framerate 10 -pixel_format nv12 -i "$spec" \
+      -t 2 -vf format=yuv420p -c:v libx264 -preset ultrafast -crf 23 \
+      "$tmp_video" 2>"$tmp_log" &
+    pid=$!
+    for _ in {1..60}; do
+      if kill -0 "$pid" 2>/dev/null; then
+        sleep 0.1
+      else
+        break
+      fi
+    done
+    if kill -0 "$pid" 2>/dev/null; then
+      kill -INT "$pid" 2>/dev/null || true
+      for _ in {1..20}; do
+        if kill -0 "$pid" 2>/dev/null; then
+          sleep 0.1
+        else
+          break
+        fi
+      done
+    fi
+    if kill -0 "$pid" 2>/dev/null; then
+      kill -TERM "$pid" 2>/dev/null || true
+      sleep 0.2
+    fi
+    if kill -0 "$pid" 2>/dev/null; then
+      kill -KILL "$pid" 2>/dev/null || true
+    fi
+    wait "$pid" 2>/dev/null || true
+
+    bytes=0
+    if [[ -f "$tmp_video" ]]; then
+      bytes="$(wc -c <"$tmp_video" 2>/dev/null || echo 0)"
+    fi
+    if [[ "${bytes:-0}" -gt 4096 ]]; then
+      echo "[vt] doctor probe OK: ${tmp_video} (${bytes} bytes)"
+      exit 0
+    fi
+    echo "[vt] doctor probe FAILED: no usable video produced" >&2
+    echo "[vt] hint: macOS System Settings -> Privacy & Security -> Screen Recording -> enable your terminal app, then restart it" >&2
+    echo "[vt] probe log: ${tmp_log}" >&2
+    exit 1
+    ;;
+
+  step)
+    step_name=""
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --name)
+          step_name="${2:-}"
+          shift 2
+          ;;
+        --)
+          shift
+          break
+          ;;
+        -h|--help)
+          usage
+          exit 0
+          ;;
+        *)
+          echo "unknown arg: $1" >&2
+          usage
+          exit 2
+          ;;
+      esac
+    done
+
+    if [[ -z "$step_name" ]]; then
+      echo "missing --name" >&2
+      exit 2
+    fi
+    if [[ $# -lt 1 ]]; then
+      echo "missing command after --" >&2
+      exit 2
+    fi
+
+    if ! vt_enabled; then
+      "$@"
+      exit $?
+    fi
+
+    require ffmpeg
+    require python3
+
+    base_dir="${VISUAL_TRUTH_DIR:-/tmp/automation_logs}"
+    session="${VISUAL_TRUTH_SESSION:-$(date -u +%Y%m%dT%H%M%SZ)-$$}"
+    safe_step="$(sanitize_name "$step_name")"
+    step_dir="${base_dir}/${session}/${safe_step}"
+    mkdir -p "${step_dir}"
+
+    events_file="${base_dir}/${session}/events.jsonl"
+    touch "${events_file}"
+
+    ts="$(date -u +%Y%m%dT%H%M%SZ)"
+    video_file="${step_dir}/${ts}.mp4"
+    cmd_log="${step_dir}/${ts}.cmd.log"
+    ffmpeg_log="${step_dir}/${ts}.ffmpeg.log"
+    meta_file="${step_dir}/${ts}.meta.json"
+
+    screen_spec="$(resolve_screen_spec "${VISUAL_TRUTH_SCREEN_SPEC:-${VISUAL_TRUTH_SCREEN_INDEX:-auto}}")"
+    fps="${VISUAL_TRUTH_FPS:-30}"
+    min_s="${VISUAL_TRUTH_MIN_SECONDS:-5}"
+    pre_s="${VISUAL_TRUTH_PRE_SECONDS:-0}"
+    post_s="${VISUAL_TRUTH_POST_SECONDS:-0}"
+
+    python3 - <<'PY' "$meta_file" "$step_name" "$screen_spec" "$fps" "$min_s" "$pre_s" "$post_s" "$video_file" "$cmd_log" "$ffmpeg_log"
+import json
+import sys
+from datetime import datetime, timezone
+
+def to_int(value, default):
+  try:
+    return int(value)
+  except Exception:
+    return default
+
+def to_float(value, default):
+  try:
+    return float(value)
+  except Exception:
+    return default
+
+path = sys.argv[1]
+data = {
+  "created_at": datetime.now(timezone.utc).isoformat(),
+  "step": sys.argv[2],
+  "screen_spec": sys.argv[3],
+  "fps": int(sys.argv[4]),
+  "min_seconds": to_int(sys.argv[5], 5),
+  "pre_seconds": to_float(sys.argv[6], 0.0),
+  "post_seconds": to_float(sys.argv[7], 0.0),
+  "video": sys.argv[8],
+  "command_log": sys.argv[9],
+  "ffmpeg_log": sys.argv[10],
+}
+with open(path, "w", encoding="utf-8") as f:
+  f.write(json.dumps(data, indent=2, ensure_ascii=True))
+PY
+
+    emit_event "$events_file" "step.start" "$step_name" "{\"video\":\"${video_file}\",\"cmd_log\":\"${cmd_log}\",\"ffmpeg_log\":\"${ffmpeg_log}\"}"
+
+    rec_started_epoch="$(date +%s)"
+
+    ffmpeg -nostdin -hide_banner -loglevel error -y \
+      -f avfoundation -framerate "$fps" -pixel_format nv12 -i "$screen_spec" \
+      -vf format=yuv420p -c:v libx264 -preset ultrafast -crf 23 \
+      "$video_file" 2>"$ffmpeg_log" &
+    rec_pid=$!
+
+    handshake_ok="false"
+    hb_bytes=0
+    for _ in {1..40}; do
+      if ! kill -0 "$rec_pid" 2>/dev/null; then
+        break
+      fi
+      if [[ -f "$video_file" ]]; then
+        hb_bytes="$(wc -c <"$video_file" 2>/dev/null || echo 0)"
+        if [[ "${hb_bytes:-0}" -gt 4096 ]]; then
+          handshake_ok="true"
+          break
+        fi
+      fi
+      sleep 0.1
+    done
+    if [[ "$handshake_ok" != "true" ]]; then
+      if kill -0 "$rec_pid" 2>/dev/null; then
+        kill -INT "$rec_pid" 2>/dev/null || true
+        sleep 0.2
+      fi
+      if kill -0 "$rec_pid" 2>/dev/null; then
+        kill -TERM "$rec_pid" 2>/dev/null || true
+        sleep 0.2
+      fi
+      if kill -0 "$rec_pid" 2>/dev/null; then
+        kill -KILL "$rec_pid" 2>/dev/null || true
+      fi
+      wait "$rec_pid" 2>/dev/null || true
+
+      emit_event "$events_file" "step.error" "$step_name" "{\"error\":\"recording_failed\",\"detail\":\"recorder_not_writing\",\"bytes\":${hb_bytes:-0}}"
+      echo "recording failed: recorder did not produce a usable mp4 (check macOS Screen Recording permission for your terminal app)" >&2
+      echo "ffmpeg_log=${ffmpeg_log}" >&2
+      exit 4
+    fi
+
+    if [[ "$pre_s" != "0" ]]; then
+      sleep "$pre_s"
+    fi
+
+    set +e
+    ( "$@" ) 2>&1 | tee "$cmd_log"
+    cmd_status=${PIPESTATUS[0]}
+    set -e
+
+    if [[ "$post_s" != "0" ]]; then
+      sleep "$post_s"
+    fi
+
+    if [[ "$min_s" =~ ^[0-9]+$ ]] && (( min_s > 0 )); then
+      now_epoch="$(date +%s)"
+      elapsed=$(( now_epoch - rec_started_epoch ))
+      if (( elapsed < min_s )); then
+        sleep $(( min_s - elapsed ))
+      fi
+    fi
+
+    if kill -0 "$rec_pid" 2>/dev/null; then
+      kill -INT "$rec_pid" 2>/dev/null || true
+      for _ in {1..40}; do
+        if kill -0 "$rec_pid" 2>/dev/null; then
+          sleep 0.1
+        else
+          break
+        fi
+      done
+    fi
+    if kill -0 "$rec_pid" 2>/dev/null; then
+      kill -TERM "$rec_pid" 2>/dev/null || true
+      sleep 0.2
+    fi
+    if kill -0 "$rec_pid" 2>/dev/null; then
+      kill -KILL "$rec_pid" 2>/dev/null || true
+    fi
+    wait "$rec_pid" 2>/dev/null || true
+
+    if [[ ! -f "$video_file" ]]; then
+      emit_event "$events_file" "step.error" "$step_name" "{\"error\":\"recording_failed\",\"detail\":\"missing_video_file\"}"
+      echo "recording failed: missing video file (check macOS Screen Recording permission for your terminal app)" >&2
+      echo "ffmpeg_log=${ffmpeg_log}" >&2
+      exit 4
+    fi
+    video_bytes="$(wc -c <"$video_file" 2>/dev/null || echo 0)"
+    if [[ "${video_bytes:-0}" -lt 50000 ]]; then
+      emit_event "$events_file" "step.error" "$step_name" "{\"error\":\"recording_failed\",\"detail\":\"video_too_small\",\"bytes\":${video_bytes:-0}}"
+      echo "recording failed: video too small (check macOS Screen Recording permission for your terminal app)" >&2
+      echo "ffmpeg_log=${ffmpeg_log}" >&2
+      exit 4
+    fi
+
+    emit_event "$events_file" "step.end" "$step_name" "{\"status\":${cmd_status}}"
+
+    if [[ $cmd_status -ne 0 ]]; then
+      emit_event "$events_file" "step.error" "$step_name" "{\"error\":\"command_failed\",\"status\":${cmd_status}}"
+      exit $cmd_status
+    fi
+
+    if [[ "${VISUAL_TRUTH_VALIDATE:-0}" == "1" ]]; then
+      set +e
+      python3 "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/vt_validate.py" \
+        --video "$video_file" \
+        --task "$step_name" \
+        --out "${step_dir}/${ts}.validation.json"
+      validate_status=$?
+      set -e
+      if [[ $validate_status -ne 0 && "${VISUAL_TRUTH_VALIDATE_STRICT:-1}" == "1" ]]; then
+        emit_event "$events_file" "step.error" "$step_name" "{\"error\":\"validation_failed\",\"status\":${validate_status}}"
+        exit $validate_status
+      fi
+    fi
+
+    ;;
+
+  *)
+    usage
+    exit 2
+    ;;
+esac
