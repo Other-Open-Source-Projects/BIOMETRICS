@@ -2,6 +2,7 @@ package actor
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -75,7 +76,11 @@ func (s *System) Start(ctx context.Context) {
 				case <-loopCtx.Done():
 					return
 				case env := <-a.mailbox:
-					result := a.handler(loopCtx, env)
+					handlerCtx := loopCtx
+					if env.Ctx != nil {
+						handlerCtx = env.Ctx
+					}
+					result := a.handler(handlerCtx, env)
 					if env.ResponseCh != nil {
 						select {
 						case env.ResponseCh <- result:
@@ -99,21 +104,29 @@ func (s *System) Send(ctx context.Context, actorName string, env contracts.Agent
 		timeout = 90 * time.Second
 	}
 
+	taskCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
 	responseCh := make(chan contracts.AgentResult, 1)
 	env.ResponseCh = responseCh
 	env.DispatchedAt = time.Now().UTC()
+	env.Ctx = taskCtx
 
 	select {
-	case <-ctx.Done():
-		return contracts.AgentResult{}, ctx.Err()
+	case <-taskCtx.Done():
+		if errors.Is(taskCtx.Err(), context.DeadlineExceeded) {
+			return contracts.AgentResult{}, fmt.Errorf("actor %s timeout", actorName)
+		}
+		return contracts.AgentResult{}, taskCtx.Err()
 	case a.mailbox <- env:
 	}
 
 	select {
-	case <-ctx.Done():
-		return contracts.AgentResult{}, ctx.Err()
-	case <-time.After(timeout):
-		return contracts.AgentResult{}, fmt.Errorf("actor %s timeout", actorName)
+	case <-taskCtx.Done():
+		if errors.Is(taskCtx.Err(), context.DeadlineExceeded) {
+			return contracts.AgentResult{}, fmt.Errorf("actor %s timeout", actorName)
+		}
+		return contracts.AgentResult{}, taskCtx.Err()
 	case res := <-responseCh:
 		return res, nil
 	}

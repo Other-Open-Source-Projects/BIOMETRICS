@@ -138,8 +138,14 @@ func (a *Adapter) executeOnce(
 	binaryPath, runID, agentName, prompt, projectID string,
 	metadata routingMetadata,
 ) (string, error) {
-	timeoutCtx, cancel := context.WithTimeout(ctx, 180*time.Second)
-	defer cancel()
+	execCtx := ctx
+	var cancel context.CancelFunc
+	if _, ok := ctx.Deadline(); !ok {
+		execCtx, cancel = context.WithTimeout(ctx, 10*time.Minute)
+	}
+	if cancel != nil {
+		defer cancel()
+	}
 
 	args := []string{"run"}
 	if strings.TrimSpace(agentName) != "" {
@@ -153,7 +159,7 @@ func (a *Adapter) executeOnce(
 	}
 	args = append(args, prompt)
 
-	cmd := exec.CommandContext(timeoutCtx, binaryPath, args...)
+	cmd := exec.CommandContext(execCtx, binaryPath, args...)
 	cmd.Env = append(os.Environ(),
 		"PROJECT_ID="+projectID,
 		"BIOMETRICS_RUN_ID="+runID,

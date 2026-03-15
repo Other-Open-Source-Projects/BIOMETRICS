@@ -1,6 +1,7 @@
 package contracts
 
 import (
+	"context"
 	"strings"
 	"time"
 )
@@ -165,6 +166,7 @@ type AgentEnvelope struct {
 	BlueprintModules   []string          `json:"blueprint_modules,omitempty"`
 	Bootstrap          bool              `json:"bootstrap,omitempty"`
 	Input              map[string]string `json:"input,omitempty"`
+	Ctx                context.Context   `json:"-"`
 	ResponseCh         chan AgentResult  `json:"-"`
 	DispatchedAt       time.Time         `json:"dispatched_at"`
 }
