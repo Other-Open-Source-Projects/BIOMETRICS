@@ -1,6 +1,71 @@
-# BIOMETRICS V3 (OpenCode Extension, Codex-First)
+# BIOMETRICS
 
-BIOMETRICS V3 is an OpenCode CLI extension layer (Codex-first) for autonomous 24/7 orchestration, policy enforcement, and operator workflows. Codex core stays upstream; BIOMETRICS adds additive runtime modules and keeps a Codex-native visual style.
+**Autonomous coding control plane for 24/7 AI-assisted execution.**
+
+<p align="center">
+  <img src="docs/assets/biometrics-hero.jpeg" alt="BIOMETRICS Control Plane" width="100%">
+</p>
+
+[![Go Report Card](https://goreportcard.com/badge/github.com/Delqhi/BIOMETRICS)](https://goreportcard.com/report/github.com/Delqhi/BIOMETRICS)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Go Version](https://img.shields.io/badge/Go-1.21%2B-00ADD8?logo=go)](https://golang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0%2B-3178C6?logo=typescript)](https://www.typescriptlang.org/)
+
+BIOMETRICS is a production-grade control plane for autonomous coding workflows. Built as an OpenCode CLI extension (Codex-first), it provides orchestration, policy enforcement, and operator supervision for 24/7 AI-assisted execution at enterprise scale.
+
+**Key Capabilities:**
+
+| Feature | Description |
+|---------|-------------|
+| **Autonomous Orchestration** | 24/7 supervised and autonomous coding runs with checkpoint/recovery |
+| **Policy Enforcement** | Configurable governance, rate limits, and approval workflows |
+| **Multi-Agent Support** | Parallel agent execution with fallback chains and model routing |
+| **Observability** | Real-time SSE events, WebSocket streaming, and Prometheus metrics |
+| **Enterprise Ready** | OpenAPI specs, JSON Schema contracts, soak validation, release gates |
+
+**Why BIOMETRICS?**
+
+- **Battle-tested architecture**: Go backend with TypeScript web UI, designed for production workloads
+- **Codex-native**: Extends OpenCode CLI without forking - your existing Codex workflow stays intact
+- **Enterprise governance**: Policy-as-code, approval workflows, and audit trails built in
+- **Developer-first**: One-command onboarding, rich CLI tooling, comprehensive documentation
+
+## Quick Start
+
+```bash
+# Clone and run
+git clone https://github.com/Delqhi/BIOMETRICS.git
+cd BIOMETRICS
+./biometrics-onboard
+
+# Verify
+./bin/biometrics-cli --version
+```
+
+That's it. Onboarding handles dependencies, builds artifacts, and runs smoke checks.
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     BIOMETRICS Control Plane                 │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │  Web UI     │  │  REST API   │  │  WebSocket  │         │
+│  │  (TypeScript)│  │  (Go)       │  │  (SSE)      │         │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘         │
+│         │                │                │                 │
+│  ┌──────▼────────────────▼────────────────▼──────┐         │
+│  │           Orchestration Engine                  │         │
+│  │  (scheduler, runs, tasks, checkpoints)         │         │
+│  └──────────────────────┬─────────────────────────┘         │
+│                         │                                    │
+│  ┌──────────────────────▼─────────────────────────┐         │
+│  │           OpenCode/Codex Integration            │         │
+│  │  (policy enforcement, model routing, fallbacks) │         │
+│  └─────────────────────────────────────────────────┘         │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ## Codex-First Positioning
 
@@ -274,3 +339,30 @@ SSE compatibility note:
 ## Shim Deprecation
 
 `cmd/biometrics` remains a temporary compatibility shim in V3.1 and is scheduled for removal in V3.2 on **April 22, 2026**.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, commit conventions, and PR workflow.
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for vulnerability reporting and security policy.
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+<p align="center">
+  <a href="https://github.com/Delqhi/BIOMETRICS/stargazers">
+    <img src="https://img.shields.io/github/stars/Delqhi/BIOMETRICS?style=social" alt="GitHub stars">
+  </a>
+  <a href="https://github.com/Delqhi/BIOMETRICS/network/members">
+    <img src="https://img.shields.io/github/forks/Delqhi/BIOMETRICS?style=social" alt="GitHub forks">
+  </a>
+</p>
+
+<p align="center">
+  Built by <a href="https://github.com/Delqhi">Delqhi</a> at <a href="https://www.aiometrics.com">AIOMETRICS</a>
+</p>
