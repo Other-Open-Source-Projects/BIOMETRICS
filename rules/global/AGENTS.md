@@ -80,6 +80,7 @@ It defines the active V3 behavior and replaces legacy V2 conventions.
 2. Historical V2 documents must not be retained in-repo.
 3. Migration guidance lives in `docs/guides/MIGRATION_V3.md`.
 4. Operator procedures live in `docs/guides/OPERATOR_RUNBOOK_V3.md`.
+5. Documentation, READMEs, and GitHub issues must include screenshots, images, diagrams, and/or videos whenever they document observable behavior, bugs, fixes, workflows, UI, or operator-visible results.
 
 ## 9. CI and Release Gates
 

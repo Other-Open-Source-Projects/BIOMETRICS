@@ -6,7 +6,7 @@
   "plugin": [
     "opencode-antigravity-auth@latest",
     "oh-my-opencode",
-    "opencode-qwencode-auth"
+    "opencode-qwen-proxy"
   ],
   "agent": {
     "general": {

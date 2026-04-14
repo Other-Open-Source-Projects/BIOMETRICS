@@ -1075,7 +1075,7 @@ curl -X POST https://api.biometrics.com/v1/enrollments \
 
 ### 6.1 JSDoc/TSDoc Standards
 
-**Rule:** Document ALL public exports, NONE internal functions
+**Rule:** Document public exports and non-obvious contracts. Skip routine internal helpers unless a comment adds durable value, such as constraints, invariants, edge cases, or operational caveats.
 
 #### Function Documentation Template
 

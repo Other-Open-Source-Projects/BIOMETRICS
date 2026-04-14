@@ -173,11 +173,11 @@ function complexCalculation(): number {
 }
 ```
 
-### 1.4 JSDoc for All Exports
+### 1.4 JSDoc/TSDoc for Public or Non-Obvious APIs
 
-**Rule:** Every exported function, class, interface, and type MUST have JSDoc comments.
+**Rule:** Use JSDoc/TSDoc for public exports, non-obvious contracts, and behavior that benefits from durable explanation. Routine internal helpers and obvious code do not need boilerplate comments.
 
-**Why:** JSDoc provides documentation that tools can use to generate API docs. It helps other developers understand the purpose, parameters, and return values without reading the implementation.
+**Why:** JSDoc/TSDoc works best when it adds durable value: public API clarity, important constraints, invariants, side effects, and usage guidance. Boilerplate comments on obvious code create noise and age badly.
 
 **Function Documentation:**
 
